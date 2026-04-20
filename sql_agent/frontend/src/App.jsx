@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Database, Terminal, Settings, Loader2, Send, CheckCircle2 } from 'lucide-react';
+import { Database, Terminal, Settings, Loader2, Send, CheckCircle2, LayoutTemplate, MessageSquare } from 'lucide-react';
+import SchemaBuilder from './SchemaBuilder';
 
 const API_URL = 'http://127.0.0.1:8000/api';
 
@@ -19,6 +20,7 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [currentView, setCurrentView] = useState('chat'); // 'chat' or 'schema'
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -57,6 +59,23 @@ function App() {
 
   const toggleTable = (t) => {
     setActiveTables(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
+  };
+
+  const handleTableCreated = async (newTableName) => {
+    const newActiveTables = [...activeTables, newTableName];
+    setTables(prev => [...prev, newTableName]);
+    setActiveTables(newActiveTables);
+    setCurrentView('chat');
+    
+    try {
+      await axios.post(`${API_URL}/tables/active`, { tables: newActiveTables });
+    } catch (err) {
+      console.error("Failed to sync active tables", err);
+    }
+
+    if (messages.length === 0) {
+      setMessages([{role: 'agent', isFinal: true, content: 'Hello! I am your autonomous Database AI Agent. How can I assist you today?'}]);
+    }
   };
 
   const sendMessage = async (e) => {
@@ -141,6 +160,11 @@ function App() {
     );
   }
 
+  const skipToSchemaBuilder = () => {
+    setChatReady(true);
+    setCurrentView('schema');
+  };
+
   if (!chatReady) {
     return (
       <div className="glass-panel">
@@ -157,9 +181,16 @@ function App() {
           ))}
         </div>
         
-        <button className="btn" onClick={submitActiveTables} disabled={activeTables.length===0}>
-          Initialize Sub-Agent
-        </button>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button className="btn" onClick={submitActiveTables} disabled={activeTables.length===0}>
+            Initialize Sub-Agent
+          </button>
+          {tables.length === 0 && (
+            <button className="btn secondary" onClick={skipToSchemaBuilder}>
+              <LayoutTemplate size={18} /> Create New Table
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -184,7 +215,7 @@ function App() {
         
         <div className="sidebar-section">
           <h3 style={{fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '1px'}}>Authorized Area</h3>
-          <div className="table-list">
+          <div className="table-list" style={{marginBottom: '1rem'}}>
             {activeTables.map(t => (
               <div key={t} className="table-item active">
                 <CheckCircle2 size={16} /> {t}
@@ -192,11 +223,36 @@ function App() {
             ))}
           </div>
         </div>
+
+        <div className="sidebar-section" style={{marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid var(--glass-border)'}}>
+          <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
+            <button 
+              className={`btn ${currentView === 'chat' ? 'primary' : 'secondary'}`} 
+              style={{justifyContent: 'flex-start', padding: '0.5rem 1rem'}}
+              onClick={() => setCurrentView('chat')}
+            >
+              <MessageSquare size={18} /> Chat Assistant
+            </button>
+            <button 
+              className={`btn ${currentView === 'schema' ? 'primary' : 'secondary'}`} 
+              style={{justifyContent: 'flex-start', padding: '0.5rem 1rem'}}
+              onClick={() => setCurrentView('schema')}
+            >
+              <LayoutTemplate size={18} /> Schema Builder
+            </button>
+          </div>
+        </div>
       </div>
       
       <div className="chat-container">
-        <div className="chat-messages" ref={scrollRef}>
-          {messages.map((m, i) => (
+        {currentView === 'schema' ? (
+          <div style={{padding: '2rem', height: '100%', overflowY: 'auto'}}>
+            <SchemaBuilder onTableCreated={handleTableCreated} />
+          </div>
+        ) : (
+          <>
+            <div className="chat-messages" ref={scrollRef}>
+              {messages.map((m, i) => (
             <div key={i} className={`message ${m.role}`}>
               {m.isFinal || m.role === 'user' ? (
                 <div className="message-bubble">
@@ -234,6 +290,8 @@ function App() {
             </button>
           </form>
         </div>
+          </>
+        )}
       </div>
     </div>
   );

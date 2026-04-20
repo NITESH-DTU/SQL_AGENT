@@ -321,5 +321,49 @@ TOOLS_SCHEMA = [
                 "required": ["table1", "table2"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "explain_query",
+            "description": "Explains a query execution plan to diagnose slow queries (Uses EXPLAIN or EXPLAIN QUERY PLAN).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sql": {"type": "string", "description": "The query to explain."}
+                },
+                "required": ["sql"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_index",
+            "description": "Creates an index on a table to improve query performance.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "table_name": {"type": "string", "description": "The name of the table."},
+                    "column_name": {"type": "string", "description": "The column to index."},
+                    "index_name": {"type": "string", "description": "The name of the new index."}
+                },
+                "required": ["table_name", "column_name", "index_name"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "drop_table",
+            "description": "Drops an active table from the database.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "table_name": {"type": "string", "description": "The name of the table to drop."}
+                },
+                "required": ["table_name"]
+            }
+        }
     }
 ]

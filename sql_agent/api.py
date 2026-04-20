@@ -125,7 +125,7 @@ def create_table(payload: CreateTablePayload):
                     col_def += f" DEFAULT {c.default_val}"
         columns_def.append(col_def)
         
-    sql = f"CREATE TABLE {payload.table_name} (\\n  " + ",\\n  ".join(columns_def) + "\\n);"
+    sql = f"CREATE TABLE {payload.table_name} (\n  " + ",\n  ".join(columns_def) + "\n);"
     res = state.db.execute_write(sql)
     if isinstance(res, dict) and "error" in res:
         raise HTTPException(status_code=400, detail=res["error"])
