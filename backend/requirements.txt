@@ -1,0 +1,13 @@
+openai
+psycopg2-binary
+python-dotenv
+fastapi
+uvicorn
+pydantic
+pdfplumber
+python-docx
+pandas
+reportlab
+sse-starlette
+python-multipart
+openpyxl
