@@ -189,6 +189,54 @@ async def export_data(format: str, sql: str, filename: str):
     
     return FileResponse(file_path, filename=filename)
 
+class ExecuteSQLRequest(BaseModel):
+    sql: str
+
+@app.post("/api/execute-sql")
+async def execute_sql(req: ExecuteSQLRequest):
+    if not db_manager.conn:
+        raise HTTPException(status_code=400, detail="Database not connected")
+    
+    import time
+    sql = req.sql.strip()
+    if not sql:
+        raise HTTPException(status_code=400, detail="SQL query is empty")
+    
+    start = time.time()
+    
+    # Detect query type
+    first_word = sql.split()[0].upper() if sql.split() else ""
+    read_keywords = {"SELECT", "SHOW", "DESCRIBE", "EXPLAIN", "PRAGMA", "WITH"}
+    is_read = first_word in read_keywords
+    
+    try:
+        if is_read:
+            result = db_manager.execute_query(sql)
+            elapsed = round((time.time() - start) * 1000, 2)
+            if isinstance(result, dict) and "error" in result:
+                return {"error": result["error"], "executionTime": f"{elapsed}ms"}
+            columns = list(result[0].keys()) if result and len(result) > 0 else []
+            return {
+                "type": "read",
+                "rows": result,
+                "columns": columns,
+                "rowCount": len(result),
+                "executionTime": f"{elapsed}ms"
+            }
+        else:
+            result = db_manager.execute_write(sql)
+            elapsed = round((time.time() - start) * 1000, 2)
+            if isinstance(result, dict) and "error" in result:
+                return {"error": result["error"], "executionTime": f"{elapsed}ms"}
+            return {
+                "type": "write",
+                "success": True,
+                "executionTime": f"{elapsed}ms"
+            }
+    except Exception as e:
+        elapsed = round((time.time() - start) * 1000, 2)
+        return {"error": str(e), "executionTime": f"{elapsed}ms"}
+
 @app.get("/api/activity-log")
 async def get_activity_log():
     log_path = "agent_sessions.log"
