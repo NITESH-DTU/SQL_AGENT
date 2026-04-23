@@ -1,1 +1,2 @@
 [2026-04-21T17:56:52.872122] VIOLATION: Restricted Table Access: friends | DATA: SELECT * FROM friends;
+[2026-04-23T18:24:46.244029] VIOLATION: Blocked Keyword: PRAGMA | DATA: PRAGMA table_info(users_dataset)

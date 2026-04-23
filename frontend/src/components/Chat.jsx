@@ -2,8 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Sparkles, Search, Download, PlusCircle, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ToolCallCard from './ToolCallCard';
+import ChartRenderer from './ChartRenderer';
+import useDashboard from '../hooks/useDashboard';
+import toast from 'react-hot-toast';
 
-export default function Chat({ activeTables, db, messages, sendMessage, isThinking, currentIteration }) {
+export default function Chat({ activeTables, db, messages, sendMessage, isThinking, currentIteration, onPin }) {
   const [input, setInput] = useState('');
   const scrollRef = useRef(null);
 
@@ -173,6 +176,47 @@ export default function Chat({ activeTables, db, messages, sendMessage, isThinki
                           </div>
                         </div>
                       )}
+
+                      {/* Auto-Charts */}
+                      {msg.steps && msg.steps.map((step, sIdx) => {
+                        if (step.result) {
+                          try {
+                            const data = JSON.parse(step.result);
+                            if (Array.isArray(data) && data.length > 0) {
+                              // Check if chartable (at least one numeric column)
+                              const keys = Object.keys(data[0]);
+                              const hasNumeric = keys.some(k => typeof data[0][k] === 'number' || !isNaN(parseFloat(data[0][k])));
+                              
+                              if (hasNumeric) {
+                                // Detect Metric vs Chart
+                                const isMetric = data.length === 1 && keys.length === 1;
+                                
+                                return (
+                                  <ChartRenderer 
+                                    key={`chart-${sIdx}`} 
+                                    data={data} 
+                                    title={step.tool.replace(/_/g, ' ').toUpperCase()}
+                                    onPin={(config) => {
+                                      const sql = step.sql || step.args?.sql || step.args?.sql_query || '';
+                                      onPin({
+                                        title: config.title || "New Widget",
+                                        sql_query: sql,
+                                        widget_type: isMetric ? 'metric' : 'chart',
+                                        chart_type: config.type,
+                                        x_column: config.labelKey,
+                                        y_column: config.numericKeys[0],
+                                        db_type: db?.type,
+                                        db_path: db?.name
+                                      });
+                                    }}
+                                  />
+                                );
+                              }
+                            }
+                          } catch (e) { /* not json or not chartable */ }
+                        }
+                        return null;
+                      })}
                     </div>
                   ) : (
                     <div className="inline-block p-4 px-6 rounded-2xl bg-gradient-to-br from-primary to-primary/85 text-white shadow-xl shadow-primary/20 font-semibold text-[15px] tracking-tight">

@@ -6,8 +6,8 @@ import toast from 'react-hot-toast';
 
 const API_BASE = 'http://localhost:8000/api';
 
-export default function SQLConsole({ onClose, db }) {
-  const [sql, setSql] = useState('');
+export default function SQLConsole({ onClose, db, initialSql = '', onPin }) {
+  const [sql, setSql] = useState(initialSql);
   const [result, setResult] = useState(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [history, setHistory] = useState(() => {
@@ -22,6 +22,13 @@ export default function SQLConsole({ onClose, db }) {
       textareaRef.current.focus();
     }
   }, []);
+
+  useEffect(() => {
+    if (initialSql) {
+      setSql(initialSql);
+      setActiveTab('editor');
+    }
+  }, [initialSql]);
 
   const executeQuery = useCallback(async () => {
     if (!sql.trim() || isExecuting) return;
@@ -254,6 +261,18 @@ export default function SQLConsole({ onClose, db }) {
                             {result.rowCount} row{result.rowCount !== 1 ? 's' : ''}
                           </div>
                         )}
+                        <button
+                          onClick={() => onPin({
+                            title: 'Console Query',
+                            sql_query: sql,
+                            widget_type: result.rowCount === 1 && result.columns.length === 1 ? 'metric' : 'table',
+                            db_type: db?.type,
+                            db_path: db?.name
+                          })}
+                          className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all text-[10px] font-bold uppercase tracking-wider ml-2"
+                        >
+                          <Layout size={11} /> Pin to Dashboard
+                        </button>
                       </div>
                     </div>
 

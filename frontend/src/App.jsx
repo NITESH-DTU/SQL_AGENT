@@ -9,6 +9,10 @@ import TableBuilder from './components/TableBuilder';
 import FileUpload from './components/FileUpload';
 import DataExplorer from './components/DataExplorer';
 import SQLConsole from './components/SQLConsole';
+import Dashboard from './components/Dashboard';
+import QueryHistory from './components/QueryHistory';
+import WidgetModal from './components/WidgetModal';
+import useDashboard from './hooks/useDashboard';
 import { useDatabase } from './hooks/useDatabase';
 import { useAgent } from './hooks/useAgent';
 
@@ -22,6 +26,7 @@ function App() {
     refreshTables 
   } = useDatabase();
 
+  const { addWidget } = useDashboard();
   const { messages, sendMessage, isThinking, currentIteration, lastSql, reset } = useAgent();
   
   const handleConnect = async (config) => {
@@ -37,7 +42,23 @@ function App() {
   const [isTableBuilderOpen, setIsTableBuilderOpen] = useState(false);
   const [isFileUploadOpen, setIsFileUploadOpen] = useState(false);
   const [isSQLConsoleOpen, setIsSQLConsoleOpen] = useState(false);
+  const [consoleQuery, setConsoleQuery] = useState('');
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [pinData, setPinData] = useState(null);
   const [browsingTable, setBrowsingTable] = useState(null);
+
+  const handlePin = (data) => {
+    setPinData(data);
+    setIsPinModalOpen(true);
+  };
+
+  const handleReRun = (sql) => {
+    setConsoleQuery(sql);
+    setIsHistoryOpen(false);
+    setIsSQLConsoleOpen(true);
+  };
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden text-text-primary selection:bg-primary/30 font-sans">
@@ -65,8 +86,13 @@ function App() {
         onOpenConnect={() => setIsDBModalOpen(true)}
         onOpenUpload={() => setIsFileUploadOpen(true)}
         onOpenTableBuilder={() => setIsTableBuilderOpen(true)}
-        onOpenSQLConsole={() => setIsSQLConsoleOpen(true)}
+        onOpenSQLConsole={() => {
+          setConsoleQuery('');
+          setIsSQLConsoleOpen(true);
+        }}
         onBrowseTable={(table) => setBrowsingTable(table)}
+        onOpenDashboard={() => setIsDashboardOpen(true)}
+        onOpenHistory={() => setIsHistoryOpen(true)}
       />
 
       <main className="flex-1 flex flex-col relative min-w-0">
@@ -77,6 +103,7 @@ function App() {
           sendMessage={sendMessage} 
           isThinking={isThinking} 
           currentIteration={currentIteration} 
+          onPin={handlePin}
         />
       </main>
 
@@ -119,6 +146,38 @@ function App() {
           <SQLConsole
             onClose={() => setIsSQLConsoleOpen(false)}
             db={db}
+            initialSql={consoleQuery}
+            onPin={handlePin}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isPinModalOpen && (
+          <WidgetModal
+            isOpen={isPinModalOpen}
+            onClose={() => setIsPinModalOpen(false)}
+            onSave={addWidget}
+            initialData={pinData}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isDashboardOpen && (
+          <Dashboard 
+            isOpen={isDashboardOpen} 
+            onClose={() => setIsDashboardOpen(false)} 
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isHistoryOpen && (
+          <QueryHistory 
+            isOpen={isHistoryOpen} 
+            onClose={() => setIsHistoryOpen(false)} 
+            onReRun={handleReRun}
           />
         )}
       </AnimatePresence>

@@ -1,8 +1,8 @@
-import { Database, Plus, Table as TableIcon, Upload, CheckCircle2, Eye, Terminal, ChevronDown, Layers } from 'lucide-react';
+import { Database, Plus, Table as TableIcon, Upload, CheckCircle2, Eye, Terminal, ChevronDown, Layers, LayoutDashboard, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 
-export default function Sidebar({ db, tables, activeTables, toggleTable, onOpenConnect, onOpenUpload, onOpenTableBuilder, onOpenSQLConsole, onBrowseTable }) {
+export default function Sidebar({ db, tables, activeTables, toggleTable, onOpenConnect, onOpenUpload, onOpenTableBuilder, onOpenSQLConsole, onBrowseTable, onOpenDashboard, onOpenHistory }) {
   const [tablesExpanded, setTablesExpanded] = useState(true);
 
   return (
@@ -69,6 +69,31 @@ export default function Sidebar({ db, tables, activeTables, toggleTable, onOpenC
               <span className="text-[9px] text-text-muted font-medium tracking-wider">Manual Query Execution</span>
             </div>
           </button>
+        </section>
+
+        {/* BI Tools Section */}
+        <section>
+          <h2 className="label-caps mb-2.5 px-2">BI & Analytics</h2>
+          <div className="space-y-1.5">
+            <button
+              onClick={onOpenDashboard}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-primary/30 hover:bg-white/[0.05] transition-all group"
+            >
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                <LayoutDashboard size={16} className="text-primary" />
+              </div>
+              <span className="text-sm font-semibold text-text-primary">Dashboard</span>
+            </button>
+            <button
+              onClick={onOpenHistory}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-amber-500/30 hover:bg-white/[0.05] transition-all group"
+            >
+              <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors">
+                <Clock size={16} className="text-amber-500" />
+              </div>
+              <span className="text-sm font-semibold text-text-primary">History</span>
+            </button>
+          </div>
         </section>
 
         {/* Tables Section */}

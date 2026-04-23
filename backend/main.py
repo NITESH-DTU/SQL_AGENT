@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import uuid
 import pandas as pd
 from typing import List, Dict, Any, Optional
@@ -15,10 +16,14 @@ from agent import SQLAgent
 from file_importer import FileImporter
 from exporter import Exporter
 from seeder import AISeeder
+from meta_db import MetaDB
 
 load_dotenv()
 
 app = FastAPI(title="SQL Agent API")
+
+# Initialize Meta DB
+meta_db = MetaDB()
 
 # Enable CORS
 app.add_middleware(
@@ -57,6 +62,38 @@ class ImportRequest(BaseModel):
     table_name: str
     mode: str  # "create_new" or "append"
     column_mapping: Optional[Dict[str, str]] = None
+
+class WidgetCreateRequest(BaseModel):
+    id: str
+    title: str
+    widget_type: str
+    sql_query: str
+    db_path: Optional[str] = None
+    db_type: Optional[str] = None
+    pg_config: Optional[Dict[str, Any]] = None
+    chart_type: Optional[str] = None
+    x_column: Optional[str] = None
+    y_column: Optional[str] = None
+    color_scheme: Optional[str] = 'violet'
+    width: Optional[str] = 'half'
+    auto_refresh: Optional[int] = 0
+
+class WidgetUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    sql_query: Optional[str] = None
+    chart_type: Optional[str] = None
+    x_column: Optional[str] = None
+    y_column: Optional[str] = None
+    color_scheme: Optional[str] = None
+    width: Optional[str] = None
+    auto_refresh: Optional[int] = None
+    position: Optional[int] = None
+
+class ReorderRequest(BaseModel):
+    ids: List[str]
+
+class BookmarkRequest(BaseModel):
+    id: int
 
 @app.post("/api/connect")
 async def connect_db(req: ConnectionRequest):
@@ -112,11 +149,15 @@ async def get_table_data(table: str, page: int = 1, limit: int = 15):
     try:
         offset = (page - 1) * limit
         # Get total count
-        count_res = db_manager.execute_query(f"SELECT COUNT(*) as count FROM {table}")
+        count_res = db_manager.execute_query(f'SELECT COUNT(*) as count FROM "{table}"')
+        if isinstance(count_res, dict) and "error" in count_res:
+            raise HTTPException(status_code=500, detail=count_res["error"])
         total = count_res[0]['count'] if count_res else 0
         
         # Get page data
-        rows = db_manager.execute_query(f"SELECT * FROM {table} LIMIT {limit} OFFSET {offset}")
+        rows = db_manager.execute_query(f'SELECT * FROM "{table}" LIMIT {limit} OFFSET {offset}')
+        if isinstance(rows, dict) and "error" in rows:
+            raise HTTPException(status_code=500, detail=rows["error"])
         return {
             "table": table,
             "rows": rows,
@@ -125,6 +166,8 @@ async def get_table_data(table: str, page: int = 1, limit: int = 15):
             "limit": limit,
             "total_pages": (total + limit - 1) // limit
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -141,7 +184,7 @@ async def chat(req: ChatRequest):
     if not db_manager.conn:
         raise HTTPException(status_code=400, detail="Database not connected")
     
-    agent = SQLAgent(db_manager, req.active_tables)
+    agent = SQLAgent(db_manager, req.active_tables, meta_db)
     
     async def event_generator():
         for event in agent.run_query_stream(req.message):
@@ -197,7 +240,6 @@ async def execute_sql(req: ExecuteSQLRequest):
     if not db_manager.conn:
         raise HTTPException(status_code=400, detail="Database not connected")
     
-    import time
     sql = req.sql.strip()
     if not sql:
         raise HTTPException(status_code=400, detail="SQL query is empty")
@@ -215,12 +257,25 @@ async def execute_sql(req: ExecuteSQLRequest):
             elapsed = round((time.time() - start) * 1000, 2)
             if isinstance(result, dict) and "error" in result:
                 return {"error": result["error"], "executionTime": f"{elapsed}ms"}
-            columns = list(result[0].keys()) if result and len(result) > 0 else []
+            
+            # Log to history
+            meta_db.log_query(
+                sql=sql,
+                source='manual',
+                result_count=len(result) if isinstance(result, list) else 0,
+                execution_time=f"{elapsed}ms",
+                db_name=db_manager.db_name
+            )
+
+            if isinstance(result, list):
+                columns = list(result[0].keys()) if result else []
+            else:
+                columns = []
             return {
                 "type": "read",
-                "rows": result,
+                "rows": result if isinstance(result, list) else [],
                 "columns": columns,
-                "rowCount": len(result),
+                "rowCount": len(result) if isinstance(result, list) else 0,
                 "executionTime": f"{elapsed}ms"
             }
         else:
@@ -228,6 +283,16 @@ async def execute_sql(req: ExecuteSQLRequest):
             elapsed = round((time.time() - start) * 1000, 2)
             if isinstance(result, dict) and "error" in result:
                 return {"error": result["error"], "executionTime": f"{elapsed}ms"}
+            
+            # Log to history
+            meta_db.log_query(
+                sql=sql,
+                source='manual',
+                result_count=0,
+                execution_time=f"{elapsed}ms",
+                db_name=db_manager.db_name
+            )
+
             return {
                 "type": "write",
                 "success": True,
@@ -236,6 +301,100 @@ async def execute_sql(req: ExecuteSQLRequest):
     except Exception as e:
         elapsed = round((time.time() - start) * 1000, 2)
         return {"error": str(e), "executionTime": f"{elapsed}ms"}
+
+# --- History Endpoints ---
+
+@app.get("/api/query-history")
+async def get_query_history(page: int = 1, limit: int = 50, bookmarked: bool = False):
+    offset = (page - 1) * limit
+    history = meta_db.get_history(limit=limit, offset=offset, bookmarked_only=bookmarked)
+    return {"history": history}
+
+@app.patch("/api/query-history/{id}/bookmark")
+async def toggle_bookmark(id: int):
+    meta_db.toggle_bookmark(id)
+    return {"status": "success"}
+
+@app.delete("/api/query-history/{id}")
+async def delete_history_item(id: int):
+    meta_db.delete_history_item(id)
+    return {"status": "success"}
+
+@app.delete("/api/query-history")
+async def clear_history():
+    meta_db.clear_history()
+    return {"status": "success"}
+
+@app.get("/api/dashboard/widgets")
+async def get_widgets():
+    widgets = meta_db.get_widgets()
+    return {"widgets": widgets}
+
+@app.post("/api/dashboard/widgets")
+async def add_widget(req: WidgetCreateRequest):
+    meta_db.add_widget(req.dict())
+    return {"status": "success"}
+
+@app.patch("/api/dashboard/widgets/{widget_id}")
+async def update_widget(widget_id: str, req: WidgetUpdateRequest):
+    meta_db.update_widget(widget_id, req.dict(exclude_unset=True))
+    return {"status": "success"}
+
+@app.delete("/api/dashboard/widgets/{widget_id}")
+async def delete_widget(widget_id: str):
+    meta_db.delete_widget(widget_id)
+    return {"status": "success"}
+
+@app.post("/api/dashboard/reorder")
+async def reorder_widgets(req: ReorderRequest):
+    meta_db.reorder_widgets(req.ids)
+    return {"status": "success"}
+
+@app.post("/api/dashboard/widgets/{widget_id}/refresh")
+async def refresh_widget(widget_id: str):
+    widget = meta_db.get_widget(widget_id)
+    if not widget:
+        raise HTTPException(status_code=404, detail="Widget not found")
+    
+    # Setup temporary DB connection if not same as active
+    target_db = db_manager
+    # In a real multi-user/multi-db app, we'd handle connection pooling/switching here
+    # For now, we assume the user is connected to the right DB or we use active one
+    
+    start = time.time()
+    try:
+        result = db_manager.execute_query(widget['sql_query'])
+        elapsed = round((time.time() - start) * 1000, 2)
+        
+        if isinstance(result, dict) and "error" in result:
+            return {"error": result["error"], "executionTime": f"{elapsed}ms"}
+        
+        response = {
+            "rows": result if isinstance(result, list) else [],
+            "executionTime": f"{elapsed}ms"
+        }
+
+        # Handle Metric Trend
+        if widget['widget_type'] == 'metric' and result and isinstance(result, list):
+            # Extract first numeric value
+            first_row = result[0]
+            val = None
+            for v in first_row.values():
+                if isinstance(v, (int, float)):
+                    val = v
+                    break
+            
+            if val is not None:
+                meta_db.store_metric_value(widget_id, val)
+                response['trend'] = meta_db.get_metric_trend(widget_id)
+                response['value'] = val
+        
+        # Update last_refreshed timestamp
+        meta_db.update_widget(widget_id, {"last_refreshed": datetime.now().isoformat()})
+        
+        return response
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.get("/api/activity-log")
 async def get_activity_log():

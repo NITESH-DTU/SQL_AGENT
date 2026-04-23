@@ -30,8 +30,6 @@ class DBManager:
 
     def execute_query(self, sql, params=None, timeout=15):
         """Executes a SELECT query and returns rows as dictionaries."""
-        if params is None:
-            params = []
         timer = None
         try:
             cursor = self.conn.cursor()
@@ -43,7 +41,10 @@ class DBManager:
                 timer = threading.Timer(timeout, self.conn.interrupt)
                 timer.start()
 
-            cursor.execute(sql, params)
+            if params:
+                cursor.execute(sql, params)
+            else:
+                cursor.execute(sql)
             
             if timer:
                 timer.cancel()
@@ -52,7 +53,7 @@ class DBManager:
                 rows = cursor.fetchall()
                 result = [dict(row) for row in rows]
             else:
-                result = cursor.fetchall()
+                result = [dict(row) for row in cursor.fetchall()]
             cursor.close()
             return result
         except Exception as e:
@@ -62,8 +63,6 @@ class DBManager:
 
     def execute_write(self, sql, params=None, timeout=15):
         """Executes an INSERT, UPDATE query."""
-        if params is None:
-            params = []
         timer = None
         try:
             cursor = self.conn.cursor()
@@ -75,7 +74,10 @@ class DBManager:
                 timer = threading.Timer(timeout, self.conn.interrupt)
                 timer.start()
 
-            cursor.execute(sql, params)
+            if params:
+                cursor.execute(sql, params)
+            else:
+                cursor.execute(sql)
             
             if timer:
                 timer.cancel()

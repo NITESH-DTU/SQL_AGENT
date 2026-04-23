@@ -59,7 +59,11 @@ export function useAgent() {
               } else if (event.type === 'tool_result') {
                 currentAgentMsg = {
                   ...currentAgentMsg,
-                  steps: currentAgentMsg.steps.map(s => s.tool === event.tool && !s.result ? { ...s, result: event.result } : s)
+                  steps: currentAgentMsg.steps.map(s => 
+                    s.tool === event.tool && !s.result 
+                    ? { ...s, result: event.result, sql: event.sql, args: event.args || s.args } 
+                    : s
+                  )
                 };
                 setMessages(prev => prev.map(m => m.id === agentMsgId ? currentAgentMsg : m));
               } else if (event.type === 'final_answer') {

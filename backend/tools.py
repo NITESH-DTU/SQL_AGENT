@@ -11,8 +11,10 @@ class AgentTools:
         self.all_tables = self.db_manager.get_all_tables()
         self.exporter = Exporter(db_manager)
         self.importer = FileImporter(db_manager)
+        self.last_sql = None
 
     def _safe_execute(self, sql):
+        self.last_sql = sql
         guard_result = check_sql_guardrails(sql, self.active_tables, self.all_tables)
         if guard_result["blocked"]:
             return guard_result
@@ -41,6 +43,7 @@ class AgentTools:
         if err: return err
         if self.db_manager.db_type == "sqlite":
             sql = f"PRAGMA table_info('{table_name}')"
+            self.last_sql = sql
             return self.db_manager.execute_query(sql)
         else:
             sql = f"""
@@ -136,11 +139,18 @@ class AgentTools:
         err = self._check_table_active(table_name)
         if err: return err
         schema = self.get_table_schema(table_name)
+        if isinstance(schema, dict) and "error" in schema:
+            return schema
+        if not isinstance(schema, list) or not schema:
+            return {"error": "Could not retrieve table schema."}
         cols = [r['name'] if self.db_manager.db_type == "sqlite" else r['column_name'] for r in schema]
         results = {}
         for c in cols:
             res = self._safe_execute(f"SELECT COUNT(*) as count FROM \"{table_name}\" WHERE \"{c}\" IS NULL")
-            results[c] = res[0]['count'] if res else 0
+            if isinstance(res, list) and res:
+                results[c] = res[0]['count']
+            else:
+                results[c] = 0
         return results
 
     def detect_duplicates(self, table_name, column):
@@ -198,7 +208,12 @@ class AgentTools:
         if not hasattr(self, tool_name):
             return {"error": f"Tool {tool_name} not found."}
         try:
+            self.last_sql = None # Reset
             method = getattr(self, tool_name)
-            return method(**params)
+            result = method(**params)
+            return {
+                "result": result,
+                "sql": self.last_sql
+            }
         except Exception as e:
             return {"error": str(e)}
