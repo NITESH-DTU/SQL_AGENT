@@ -93,11 +93,26 @@ export function useAgent() {
     }
   };
 
+  const removeMessageStep = (messageId, stepIdx) => {
+    setMessages(prev => prev.map(m => {
+      if (m.id === messageId) {
+        const newSteps = [...m.steps];
+        newSteps.splice(stepIdx, 1);
+        return { ...m, steps: newSteps };
+      }
+      return m;
+    }));
+  };
+
+  const removeMessage = (messageId) => {
+    setMessages(prev => prev.filter(m => m.id !== messageId));
+  };
+
   const reset = () => {
     setMessages([]);
     setLastSql('');
     setCurrentIteration(0);
   };
 
-  return { messages, sendMessage, isThinking, currentIteration, setMessages, lastSql, reset };
+  return { messages, sendMessage, isThinking, currentIteration, setMessages, removeMessageStep, removeMessage, lastSql, reset };
 }

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Play, Clock, Terminal, Trash2, ChevronRight, AlertCircle, CheckCircle2, Table as TableIcon, Copy, RotateCcw, Loader2, Database, Hash, Timer } from 'lucide-react';
+import { X, Play, Clock, Terminal, Trash2, ChevronRight, AlertCircle, CheckCircle2, Table as TableIcon, Copy, RotateCcw, Loader2, Database, Hash, Timer, LayoutDashboard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -271,7 +271,7 @@ export default function SQLConsole({ onClose, db, initialSql = '', onPin }) {
                           })}
                           className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all text-[10px] font-bold uppercase tracking-wider ml-2"
                         >
-                          <Layout size={11} /> Pin to Dashboard
+                          <LayoutDashboard size={11} /> Pin to Dashboard
                         </button>
                       </div>
                     </div>

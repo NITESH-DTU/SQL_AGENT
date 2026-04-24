@@ -27,7 +27,7 @@ function App() {
   } = useDatabase();
 
   const { addWidget } = useDashboard();
-  const { messages, sendMessage, isThinking, currentIteration, lastSql, reset } = useAgent();
+  const { messages, sendMessage, removeMessage, removeMessageStep, isThinking, currentIteration, lastSql, reset } = useAgent();
   
   const handleConnect = async (config) => {
     const success = await connect(config);
@@ -101,6 +101,8 @@ function App() {
           db={db} 
           messages={messages} 
           sendMessage={sendMessage} 
+          removeMessageStep={removeMessageStep}
+          removeMessage={removeMessage}
           isThinking={isThinking} 
           currentIteration={currentIteration} 
           onPin={handlePin}

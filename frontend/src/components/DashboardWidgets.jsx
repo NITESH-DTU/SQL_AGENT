@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  LineChart, Line, PieChart, Pie, Cell, Legend
+  LineChart, Line, PieChart, Pie, Cell, Legend, AreaChart, Area, ScatterChart, Scatter, ZAxis
 } from 'recharts';
 import { RefreshCw, Trash2, Edit3, Maximize2, MoreHorizontal, ArrowUpRight, ArrowDownRight, Hash, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -72,8 +72,26 @@ export function ChartWidget({ data, chartType, xCol, yCol, colorScheme = 'violet
   if (!data || data.length === 0) return <div className="h-full flex items-center justify-center text-text-muted text-xs">No data</div>;
   
   const palette = COLORS[colorScheme] || COLORS.violet;
-  const x = xCol || Object.keys(data[0])[0];
-  const y = yCol || Object.keys(data[0])[1];
+  const keys = Object.keys(data[0]);
+  
+  // Find a numeric column for Y if not specified
+  let y = yCol;
+  if (!y || !keys.includes(y)) {
+    y = keys.find(k => {
+      const val = data[0][k];
+      return typeof val === 'number' || (!isNaN(parseFloat(val)) && isFinite(val));
+    });
+  }
+  
+  // Find a string column for X if not specified
+  let x = xCol;
+  if (!x || !keys.includes(x)) {
+    x = keys.find(k => k !== y) || keys[0];
+  }
+
+  // Fallback to first two columns if still nothing found
+  if (!x) x = keys[0];
+  if (!y) y = keys[1] || keys[0];
 
   const renderChart = () => {
     switch (chartType) {
@@ -95,6 +113,33 @@ export function ChartWidget({ data, chartType, xCol, yCol, colorScheme = 'violet
             <Tooltip contentStyle={{ background: '#0d0d14', border: 'none', borderRadius: '8px', fontSize: '10px' }} />
             <Line type="monotone" dataKey={y} stroke={palette[0]} strokeWidth={2} dot={{ r: 2 }} />
           </LineChart>
+        );
+      case 'area':
+        return (
+          <AreaChart data={data}>
+            <defs>
+              <linearGradient id={`gradient-${colorScheme}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={palette[0]} stopOpacity={0.3}/>
+                <stop offset="95%" stopColor={palette[0]} stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+            <XAxis dataKey={x} stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
+            <YAxis stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
+            <Tooltip contentStyle={{ background: '#0d0d14', border: 'none', borderRadius: '8px', fontSize: '10px' }} />
+            <Area type="monotone" dataKey={y} stroke={palette[0]} fillOpacity={1} fill={`url(#gradient-${colorScheme})`} />
+          </AreaChart>
+        );
+      case 'scatter':
+        return (
+          <ScatterChart>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
+            <XAxis type="number" dataKey={x} name={x} stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
+            <YAxis type="number" dataKey={y} name={y} stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
+            <ZAxis type="category" dataKey={Object.keys(data[0]).find(k => k !== x && k !== y) || x} />
+            <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ background: '#0d0d14', border: 'none', borderRadius: '8px', fontSize: '10px' }} />
+            <Scatter name="Data" data={data} fill={palette[0]} />
+          </ScatterChart>
         );
       default:
         return (

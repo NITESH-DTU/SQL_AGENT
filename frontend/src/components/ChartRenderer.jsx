@@ -3,11 +3,11 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   LineChart, Line, PieChart, Pie, Cell, ScatterChart, Scatter, Legend
 } from 'recharts';
-import { Pin, Download, Maximize2, MoreHorizontal } from 'lucide-react';
+import { Pin, Download, Maximize2, MoreHorizontal, X } from 'lucide-react';
 
 const COLORS = ['#7c3aed', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#a78bfa', '#22d3ee', '#34d399'];
 
-export default function ChartRenderer({ data, onPin, title = "Data Visualization" }) {
+export default function ChartRenderer({ data, onPin, onDismiss, title = "Data Visualization" }) {
   const analysis = useMemo(() => {
     if (!data || !Array.isArray(data) || data.length === 0) return null;
 
@@ -157,8 +157,12 @@ export default function ChartRenderer({ data, onPin, title = "Data Visualization
           >
             <Pin size={14} />
           </button>
-          <button className="p-1.5 hover:bg-white/5 rounded-lg text-text-muted transition-colors">
-            <MoreHorizontal size={14} />
+          <button 
+            onClick={onDismiss}
+            className="p-1.5 hover:bg-danger/10 rounded-lg text-text-muted hover:text-danger transition-colors"
+            title="Dismiss Chart"
+          >
+            <X size={14} />
           </button>
         </div>
       </div>

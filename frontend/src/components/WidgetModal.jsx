@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { X, Play, Save, Layout, BarChart3, Hash, Table as TableIcon, Settings, Database } from 'lucide-react';
+import { X, Play, Save, Layout, BarChart3, Hash, Table as TableIcon, Settings, Database, Sparkles, ChevronDown, Settings2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const API_BASE = 'http://localhost:8000/api';
 
-export default function WidgetModal({ isOpen, onClose, onSave, initialData = null }) {
+export default function WidgetModal({ isOpen, onClose, onSave, initialData = null, startInAnalysisMode = false }) {
   const [formData, setFormData] = useState({
     title: '',
     widget_type: 'chart',
@@ -19,6 +19,18 @@ export default function WidgetModal({ isOpen, onClose, onSave, initialData = nul
     auto_refresh: 0,
     ...initialData
   });
+  
+  const [analysisMode, setAnalysisMode] = useState(startInAnalysisMode);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [tables, setTables] = useState([]);
+  const [tableSchema, setTableSchema] = useState([]);
+  const [analysisConfig, setAnalysisConfig] = useState({
+    table: '',
+    dimension: '',
+    measure: '',
+    aggregation: 'COUNT'
+  });
 
   const [previewData, setPreviewData] = useState(null);
   const [isExecuting, setIsExecuting] = useState(false);
@@ -26,7 +38,66 @@ export default function WidgetModal({ isOpen, onClose, onSave, initialData = nul
 
   useEffect(() => {
     if (initialData) setFormData({ ...formData, ...initialData });
+    fetchTables();
   }, [initialData]);
+
+  const fetchTables = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/tables`);
+      setTables(res.data.tables);
+    } catch (err) {
+      console.error("Failed to fetch tables");
+    }
+  };
+
+  const fetchTableSchema = async (table) => {
+    try {
+      const res = await axios.get(`${API_BASE}/schema/${table}`);
+      setTableSchema(res.data.schema);
+    } catch (err) {
+      console.error("Failed to fetch schema");
+    }
+  };
+
+  useEffect(() => {
+    if (analysisConfig.table) {
+      fetchTableSchema(analysisConfig.table);
+    }
+  }, [analysisConfig.table]);
+
+  useEffect(() => {
+    if (analysisMode && analysisConfig.table) {
+      const { table, dimension, measure, aggregation } = analysisConfig;
+      let sql = '';
+      if (dimension && measure) {
+        sql = `SELECT ${dimension}, ${aggregation}(${measure}) as value FROM "${table}" GROUP BY ${dimension} ORDER BY value DESC`;
+      } else if (dimension) {
+        sql = `SELECT ${dimension}, COUNT(*) as count FROM "${table}" GROUP BY ${dimension} ORDER BY count DESC`;
+      } else if (measure) {
+        sql = `SELECT ${aggregation}(${measure}) as value FROM "${table}"`;
+      } else {
+        sql = `SELECT * FROM "${table}" LIMIT 100`;
+      }
+      setFormData(prev => ({ ...prev, sql_query: sql }));
+    }
+  }, [analysisConfig, analysisMode]);
+
+  const handleAiGenerate = async () => {
+    if (!aiPrompt.trim()) {
+      toast.error("Please enter a prompt for the AI");
+      return;
+    }
+    setIsAiGenerating(true);
+    try {
+      const res = await axios.post(`${API_BASE}/ai/suggest-query`, { prompt: aiPrompt });
+      setFormData(prev => ({ ...prev, sql_query: res.data.sql }));
+      toast.success("Query generated!");
+    } catch (err) {
+      toast.error("Failed to generate query");
+    } finally {
+      setIsAiGenerating(false);
+    }
+  };
 
   const handleRunPreview = async () => {
     if (!formData.sql_query.trim()) return;
@@ -110,20 +181,120 @@ export default function WidgetModal({ isOpen, onClose, onSave, initialData = nul
               </div>
 
               <div>
-                <label className="label-caps mb-1.5 block">SQL Query</label>
-                <textarea 
-                  value={formData.sql_query} 
-                  onChange={e => setFormData({...formData, sql_query: e.target.value})}
-                  className="w-full h-32 bg-black/40 border border-white/[0.06] rounded-xl p-4 text-[13px] font-mono text-text-primary focus:outline-none focus:border-primary/50 resize-none scroll-thin"
-                  placeholder="SELECT count(*) as total FROM sales..."
-                />
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="label-caps block">SQL Query</label>
+                  <div className="flex gap-2">
+                    <button 
+                      type="button"
+                      onClick={() => setAnalysisMode(!analysisMode)}
+                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg border transition-all ${analysisMode ? 'bg-secondary/10 border-secondary text-secondary' : 'bg-white/5 border-white/10 text-text-muted hover:text-text-primary'}`}
+                    >
+                      <Settings2 size={12} className="inline mr-1" /> {analysisMode ? 'Custom SQL' : 'Query Builder'}
+                    </button>
+                  </div>
+                </div>
+
+                {analysisMode ? (
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/[0.06] space-y-4">
+                    <div>
+                      <label className="text-[9px] font-bold text-text-muted uppercase mb-1 block">Select Table</label>
+                      <select 
+                        value={analysisConfig.table}
+                        onChange={e => setAnalysisConfig({...analysisConfig, table: e.target.value})}
+                        className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-xs text-text-primary focus:outline-none"
+                      >
+                        <option value="">Choose a table...</option>
+                        {tables.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[9px] font-bold text-text-muted uppercase mb-1 block">Dimension (Group)</label>
+                        <select 
+                          value={analysisConfig.dimension}
+                          onChange={e => setAnalysisConfig({...analysisConfig, dimension: e.target.value})}
+                          className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-xs text-text-primary focus:outline-none"
+                        >
+                          <option value="">None</option>
+                          {tableSchema.map(s => (
+                            <option key={s.name || s.column_name} value={s.name || s.column_name}>
+                              {s.name || s.column_name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[9px] font-bold text-text-muted uppercase mb-1 block">Measure (Value)</label>
+                        <select 
+                          value={analysisConfig.measure}
+                          onChange={e => setAnalysisConfig({...analysisConfig, measure: e.target.value})}
+                          className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-xs text-text-primary focus:outline-none"
+                        >
+                          <option value="">None / Count(*)</option>
+                          {tableSchema.map(s => (
+                            <option key={s.name || s.column_name} value={s.name || s.column_name}>
+                              {s.name || s.column_name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {analysisConfig.measure && (
+                      <div>
+                        <label className="text-[9px] font-bold text-text-muted uppercase mb-1 block">Aggregation</label>
+                        <div className="flex gap-1.5">
+                          {['COUNT', 'SUM', 'AVG', 'MIN', 'MAX'].map(agg => (
+                            <button
+                              key={agg}
+                              type="button"
+                              onClick={() => setAnalysisConfig({...analysisConfig, aggregation: agg})}
+                              className={`px-2 py-1 rounded text-[10px] font-bold border transition-all ${analysisConfig.aggregation === agg ? 'bg-primary/20 border-primary text-primary' : 'bg-white/5 border-white/5 text-text-muted'}`}
+                            >
+                              {agg}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="relative group">
+                      <input 
+                        type="text"
+                        value={aiPrompt}
+                        onChange={e => setAiPrompt(e.target.value)}
+                        placeholder="Describe what you want to see..."
+                        className="w-full bg-primary/5 border border-primary/20 rounded-xl pl-4 pr-12 py-2.5 text-xs text-text-primary focus:outline-none focus:border-primary/50"
+                      />
+                      <button 
+                        type="button"
+                        onClick={handleAiGenerate}
+                        disabled={isAiGenerating}
+                        className="absolute right-1.5 top-1.5 bottom-1.5 px-3 bg-primary rounded-lg text-white hover:bg-primary/90 transition-all flex items-center justify-center disabled:opacity-50"
+                      >
+                        {isAiGenerating ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Sparkles size={14} />}
+                      </button>
+                    </div>
+                    
+                    <textarea 
+                      value={formData.sql_query} 
+                      onChange={e => setFormData({...formData, sql_query: e.target.value})}
+                      className="w-full h-32 bg-black/40 border border-white/[0.06] rounded-xl p-4 text-[13px] font-mono text-text-primary focus:outline-none focus:border-primary/50 resize-none scroll-thin"
+                      placeholder="SELECT count(*) as total FROM sales..."
+                    />
+                  </div>
+                )}
+                
                 <button 
                   type="button" 
                   onClick={handleRunPreview}
                   disabled={isExecuting}
-                  className="mt-2 flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-text-primary transition-all border border-white/10"
+                  className="mt-2 flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-text-primary transition-all border border-white/10 w-full justify-center"
                 >
-                  <Play size={14} /> Run Preview
+                  <Play size={14} /> Run Preview & Detect Columns
                 </button>
               </div>
             </div>
@@ -141,7 +312,9 @@ export default function WidgetModal({ isOpen, onClose, onSave, initialData = nul
                       >
                         <option value="bar">Bar Chart</option>
                         <option value="line">Line Chart</option>
+                        <option value="area">Area Chart</option>
                         <option value="pie">Pie Chart</option>
+                        <option value="scatter">Scatter Chart</option>
                       </select>
                     </div>
                     <div>

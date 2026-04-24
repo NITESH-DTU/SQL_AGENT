@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, Search, Download, PlusCircle, Zap } from 'lucide-react';
+import { Send, Sparkles, Search, Download, PlusCircle, Zap, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ToolCallCard from './ToolCallCard';
 import ChartRenderer from './ChartRenderer';
 import useDashboard from '../hooks/useDashboard';
 import toast from 'react-hot-toast';
 
-export default function Chat({ activeTables, db, messages, sendMessage, isThinking, currentIteration, onPin }) {
+export default function Chat({ activeTables, db, messages, sendMessage, removeMessageStep, removeMessage, isThinking, currentIteration, onPin }) {
   const [input, setInput] = useState('');
   const scrollRef = useRef(null);
 
@@ -155,7 +155,16 @@ export default function Chat({ activeTables, db, messages, sendMessage, isThinki
                 key={msg.id} 
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div className={`max-w-[90%] ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                <div className={`max-w-[90%] ${msg.role === 'user' ? 'text-right' : 'text-left'} group/msg relative`}>
+                  {msg.role === 'agent' && (
+                    <button 
+                      onClick={() => removeMessage(msg.id)}
+                      className="absolute -right-10 top-0 p-2 text-text-muted hover:text-danger opacity-0 group-hover/msg:opacity-100 transition-opacity"
+                      title="Delete message"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                   {msg.role === 'agent' ? (
                     <div className="space-y-4">
                       {/* Tool Steps */}
@@ -196,6 +205,7 @@ export default function Chat({ activeTables, db, messages, sendMessage, isThinki
                                     key={`chart-${sIdx}`} 
                                     data={data} 
                                     title={step.tool.replace(/_/g, ' ').toUpperCase()}
+                                    onDismiss={() => removeMessageStep(msg.id, sIdx)}
                                     onPin={(config) => {
                                       const sql = step.sql || step.args?.sql || step.args?.sql_query || '';
                                       onPin({
