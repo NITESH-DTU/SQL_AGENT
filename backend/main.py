@@ -2,9 +2,11 @@ import os
 import json
 import time
 import uuid
+from datetime import datetime
 import pandas as pd
 from typing import List, Dict, Any, Optional
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends
+from openai import OpenAI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 from pydantic import BaseModel
@@ -325,6 +327,56 @@ async def clear_history():
     meta_db.clear_history()
     return {"status": "success"}
 
+@app.post("/api/ai/suggest-query")
+async def suggest_query(req: Dict[str, Any]):
+    prompt = req.get("prompt")
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Prompt required")
+    
+    if not db_manager.conn:
+        raise HTTPException(status_code=400, detail="Database not connected")
+
+    try:
+        # Get schema for context
+        schema_info = {}
+        for table in db_manager.get_all_tables():
+            if db_manager.db_type == "sqlite":
+                res = db_manager.execute_query(f"PRAGMA table_info('{table}')")
+            else:
+                res = db_manager.execute_query(f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{table}'")
+            schema_info[table] = res
+
+        # Simple completion to generate SQL
+        client = OpenAI(
+            base_url="https://api.groq.com/openai/v1",
+            api_key=os.getenv("GROQ_API_KEY")
+        )
+        
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {
+                    "role": "system", 
+                    "content": f"You are a SQL assistant. Generate ONLY the SQL query for the user's request. Do not include markdown code blocks or explanations. Use valid {db_manager.db_type} syntax. Tables and schema: {json.dumps(schema_info)}"
+                },
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1
+        )
+        
+        sql = response.choices[0].message.content.strip()
+        # Remove markdown code blocks if present
+        if sql.startswith("```"):
+            sql = sql.split("\n", 1)[1]
+        if sql.endswith("```"):
+            sql = sql.rsplit("\n", 1)[0]
+        if sql.startswith("sql"): # Handle ```sql ... ```
+            sql = sql[3:].strip()
+            
+        return {"sql": sql}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/dashboard/widgets")
 async def get_widgets():
     widgets = meta_db.get_widgets()
@@ -430,6 +482,106 @@ async def create_table(req: CreateTableRequest):
             seeder.seed_table(req.table_name, req.columns, req.seed_rows)
             
         return {"status": "created", "table": req.table_name}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/dashboard/demo")
+async def seed_demo_dashboard():
+    if not db_manager.conn:
+        # Create a temporary sqlite for demo if not connected
+        db_manager.connect_sqlite("demo.db")
+    
+    try:
+        # 1. Create a demo table
+        db_manager.execute_write("DROP TABLE IF EXISTS demo_sales")
+        db_manager.execute_write("""
+            CREATE TABLE demo_sales (
+                id INTEGER PRIMARY KEY,
+                product TEXT,
+                category TEXT,
+                revenue REAL,
+                units INTEGER,
+                sale_date DATE
+            )
+        """)
+        
+        # 2. Insert sample data
+        sample_data = [
+            ("Laptops", "Electronics", 12000.50, 10, "2024-01-10"),
+            ("Smartphones", "Electronics", 8500.20, 15, "2024-01-12"),
+            ("Coffee Makers", "Appliances", 1500.00, 20, "2024-01-15"),
+            ("Air Purifiers", "Appliances", 2200.75, 8, "2024-01-18"),
+            ("Running Shoes", "Apparel", 3400.00, 40, "2024-01-20"),
+            ("T-Shirts", "Apparel", 1200.00, 100, "2024-01-22"),
+            ("Desks", "Furniture", 5600.00, 12, "2024-01-25"),
+            ("Chairs", "Furniture", 2800.00, 30, "2024-01-28"),
+        ]
+        
+        for item in sample_data:
+            db_manager.execute_write(
+                "INSERT INTO demo_sales (product, category, revenue, units, sale_date) VALUES (?, ?, ?, ?, ?)",
+                item
+            )
+        
+        # 3. Create demo widgets
+        meta_db.clear_history()
+        # Clear existing widgets for demo? Maybe not, just add them
+        
+        demo_widgets = [
+            {
+                "id": str(uuid.uuid4()),
+                "title": "Revenue by Category (Pie)",
+                "widget_type": "chart",
+                "chart_type": "pie",
+                "sql_query": "SELECT category, SUM(revenue) as total_revenue FROM demo_sales GROUP BY category",
+                "x_column": "category",
+                "y_column": "total_revenue",
+                "color_scheme": "violet",
+                "width": "half"
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "title": "Units Sold by Product (Bar)",
+                "widget_type": "chart",
+                "chart_type": "bar",
+                "sql_query": "SELECT product, units FROM demo_sales ORDER BY units DESC",
+                "x_column": "product",
+                "y_column": "units",
+                "color_scheme": "cyan",
+                "width": "half"
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "title": "Total Revenue (Metric)",
+                "widget_type": "metric",
+                "sql_query": "SELECT SUM(revenue) as value FROM demo_sales",
+                "color_scheme": "green",
+                "width": "half"
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "title": "Detailed Sales Log (Table)",
+                "widget_type": "table",
+                "sql_query": "SELECT * FROM demo_sales ORDER BY sale_date DESC",
+                "width": "full"
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "title": "Revenue vs Units (Scatter)",
+                "widget_type": "chart",
+                "chart_type": "scatter",
+                "sql_query": "SELECT revenue, units, product FROM demo_sales",
+                "x_column": "revenue",
+                "y_column": "units",
+                "color_scheme": "amber",
+                "width": "half"
+            }
+        ]
+        
+        for w in demo_widgets:
+            meta_db.add_widget(w)
+            
+        return {"status": "success", "message": "Demo dashboard seeded with Pie, Bar, Metric, Table, and Scatter charts."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
