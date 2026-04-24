@@ -9,6 +9,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends
 from openai import OpenAI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from sse_starlette.sse import EventSourceResponse
@@ -584,6 +585,11 @@ async def seed_demo_dashboard():
         return {"status": "success", "message": "Demo dashboard seeded with Pie, Bar, Metric, Table, and Scatter charts."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# Serve frontend static files in production
+frontend_dist_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend-dist")
+if os.path.exists(frontend_dist_path):
+    app.mount("/", StaticFiles(directory=frontend_dist_path, html=True), name="frontend")
 
 if __name__ == "__main__":
     import uvicorn

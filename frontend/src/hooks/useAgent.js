@@ -1,6 +1,8 @@
 import { useState } from 'react';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = window.location.origin.includes('localhost:5173') 
+  ? 'http://localhost:8000/api' 
+  : `${window.location.origin}/api`;
 
 export function useAgent() {
   const [messages, setMessages] = useState([]);
@@ -32,19 +34,19 @@ export function useAgent() {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      
+
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-        
+
         const chunk = decoder.decode(value);
         const lines = chunk.split('\n');
-        
+
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             try {
               const event = JSON.parse(line.substring(6));
-              
+
               if (event.type === 'status') {
                 setCurrentIteration(event.iteration);
               } else if (event.type === 'tool_call') {
@@ -59,10 +61,10 @@ export function useAgent() {
               } else if (event.type === 'tool_result') {
                 currentAgentMsg = {
                   ...currentAgentMsg,
-                  steps: currentAgentMsg.steps.map(s => 
-                    s.tool === event.tool && !s.result 
-                    ? { ...s, result: event.result, sql: event.sql, args: event.args || s.args } 
-                    : s
+                  steps: currentAgentMsg.steps.map(s =>
+                    s.tool === event.tool && !s.result
+                      ? { ...s, result: event.result, sql: event.sql, args: event.args || s.args }
+                      : s
                   )
                 };
                 setMessages(prev => prev.map(m => m.id === agentMsgId ? currentAgentMsg : m));
