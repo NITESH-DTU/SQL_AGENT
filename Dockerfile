@@ -26,12 +26,11 @@ COPY backend/ ./backend/
 # Copy built frontend from Stage 1
 COPY --from=frontend-builder /app/frontend/dist ./frontend-dist
 
-# Expose port
-EXPOSE 8000
+# Expose port (Railway injects $PORT at runtime)
+EXPOSE 8080
 
 # Set working directory to backend for execution
 WORKDIR /app/backend
 
 # Start the application
-# Note: Use shell form to allow $PORT interpolation from cloud providers
-CMD gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:${PORT:-8000}
+CMD ["sh", "-c", "gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:${PORT:-8080}"]
