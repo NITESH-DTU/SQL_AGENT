@@ -33,5 +33,5 @@ EXPOSE 8000
 WORKDIR /app/backend
 
 # Start the application
-# Note: We will use gunicorn for production
-CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000"]
+# Note: Use shell form to allow $PORT interpolation from cloud providers
+CMD gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:${PORT:-8000}
