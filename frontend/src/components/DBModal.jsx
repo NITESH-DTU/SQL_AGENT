@@ -137,7 +137,16 @@ export default function DBModal({ onClose, onConnect }) {
             <div className="space-y-4">
               {dbType === 'sqlite' ? (
                 <div className="space-y-2.5">
-                  <label className="label-caps px-1">Database Path</label>
+                  <div className="flex items-center justify-between px-1">
+                    <label className="label-caps">Database Path</label>
+                    <button 
+                      type="button"
+                      onClick={() => setForm({...form, filepath: 'production.db'})}
+                      className="text-[9px] font-bold text-primary hover:text-primary/80 uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded"
+                    >
+                      Cloud Quick Start
+                    </button>
+                  </div>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-text-muted/30 group-focus-within:text-primary/50 transition-colors">
                       <Database size={16} />
@@ -146,10 +155,11 @@ export default function DBModal({ onClose, onConnect }) {
                       type="text" 
                       value={form.filepath}
                       onChange={e => setForm({...form, filepath: e.target.value})}
-                      placeholder="e.g. project_data.db" 
+                      placeholder="e.g. production.db" 
                       className="input-field pl-11 font-mono text-[13px]"
                     />
                   </div>
+                  <p className="px-1 text-[9px] text-text-muted/40 italic">Note: In deployment, use simple names like 'data.db'. Full PC paths will fail.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-4">

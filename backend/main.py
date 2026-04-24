@@ -105,6 +105,11 @@ async def connect_db(req: ConnectionRequest):
         if req.db_type == "sqlite":
             if not req.filepath:
                 raise HTTPException(status_code=400, detail="Filepath required for SQLite")
+            
+            # Helper to detect local windows paths in linux deployment
+            if "\\" in req.filepath or (len(req.filepath) > 1 and req.filepath[1] == ":"):
+                raise HTTPException(status_code=400, detail="Local Windows path detected. Please use a simple name like 'data.db' for cloud deployment.")
+                
             db_manager.connect_sqlite(req.filepath)
         elif req.db_type == "postgresql":
             db_manager.connect_postgresql(req.host, req.port, req.dbname, req.user, req.password)
