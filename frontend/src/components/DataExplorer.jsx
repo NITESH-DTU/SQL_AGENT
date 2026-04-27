@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 
 const API_BASE = 'http://localhost:8000/api';
 
-export default function DataExplorer({ table, onClose }) {
+export default function DataExplorer({ table, onClose, activeTables = [] }) {
   const [data, setData] = useState({ rows: [], total: 0, total_pages: 0, page: 1 });
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -18,7 +18,8 @@ export default function DataExplorer({ table, onClose }) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE}/data/${table}?page=${page}`);
+      const activeParam = activeTables.join(',');
+      const res = await axios.get(`${API_BASE}/data/${table}?page=${page}&active_tables=${activeParam}`);
       setData(res.data);
     } catch (err) {
       toast.error("Failed to fetch table data");
@@ -29,7 +30,8 @@ export default function DataExplorer({ table, onClose }) {
 
   const handleExport = () => {
     const filename = `${table}_export.csv`;
-    const url = `${API_BASE}/export/csv?sql=${encodeURIComponent(`SELECT * FROM ${table}`)}&filename=${filename}`;
+    const activeParam = activeTables.join(',');
+    const url = `${API_BASE}/export/csv?sql=${encodeURIComponent(`SELECT * FROM "${table}"`)}&filename=${filename}&active_tables=${activeParam}`;
     window.open(url, '_blank');
   };
 

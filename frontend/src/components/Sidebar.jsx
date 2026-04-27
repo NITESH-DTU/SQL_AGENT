@@ -1,8 +1,8 @@
-import { Database, Plus, Table as TableIcon, Upload, CheckCircle2, Eye, Terminal, ChevronDown, Layers, LayoutDashboard, Clock } from 'lucide-react';
+import { Database, Plus, Table as TableIcon, Upload, CheckCircle2, Eye, Terminal, ChevronDown, Layers, LayoutDashboard, Clock, Activity, BookOpen, Network } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 
-export default function Sidebar({ db, tables, activeTables, toggleTable, onOpenConnect, onOpenUpload, onOpenTableBuilder, onOpenSQLConsole, onBrowseTable, onOpenDashboard, onOpenHistory }) {
+export default function Sidebar({ db, tables, activeTables, toggleTable, onOpenConnect, onOpenUpload, onOpenTableBuilder, onOpenSQLConsole, onBrowseTable, onOpenDashboard, onOpenDataProfiler, onOpenGlossary, onOpenERD, onOpenHistory }) {
   const [tablesExpanded, setTablesExpanded] = useState(true);
 
   return (
@@ -85,11 +85,38 @@ export default function Sidebar({ db, tables, activeTables, toggleTable, onOpenC
               <span className="text-sm font-semibold text-text-primary">Dashboard</span>
             </button>
             <button
-              onClick={onOpenHistory}
+              onClick={onOpenDataProfiler}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-amber-500/30 hover:bg-white/[0.05] transition-all group"
             >
               <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors">
-                <Clock size={16} className="text-amber-500" />
+                <Activity size={16} className="text-amber-500" />
+              </div>
+              <span className="text-sm font-semibold text-text-primary">Data Profiler</span>
+            </button>
+            <button
+              onClick={onOpenGlossary}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-emerald-500/30 hover:bg-white/[0.05] transition-all group"
+            >
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
+                <BookOpen size={16} className="text-emerald-500" />
+              </div>
+              <span className="text-sm font-semibold text-text-primary">Semantic Layer</span>
+            </button>
+            <button
+              onClick={onOpenERD}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-indigo-500/30 hover:bg-white/[0.05] transition-all group"
+            >
+              <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center group-hover:bg-indigo-500/20 transition-colors">
+                <Network size={16} className="text-indigo-500" />
+              </div>
+              <span className="text-sm font-semibold text-text-primary">ERD Visualizer</span>
+            </button>
+            <button
+              onClick={onOpenHistory}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-blue-500/30 hover:bg-white/[0.05] transition-all group"
+            >
+              <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
+                <Clock size={16} className="text-blue-500" />
               </div>
               <span className="text-sm font-semibold text-text-primary">History</span>
             </button>

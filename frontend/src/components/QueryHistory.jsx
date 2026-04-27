@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Clock, Search, Bookmark, BookmarkCheck, Trash2, 
-  Copy, Play, Calendar, Database, Filter, ChevronRight
+  Copy, Play, Calendar, Database, Filter, ChevronRight, ChevronDown, Download
 } from 'lucide-react';
 import useQueryHistory from '../hooks/useQueryHistory';
 
@@ -24,6 +24,13 @@ export default function QueryHistory({ isOpen, onClose, onReRun }) {
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     // You could add a toast here
+  };
+
+  const handleExport = (sql, format = 'csv') => {
+    const API_BASE = 'http://localhost:8000/api';
+    const filename = `export_${Date.now()}.${format}`;
+    const url = `${API_BASE}/export/${format}?sql=${encodeURIComponent(sql)}&filename=${filename}`;
+    window.open(url, '_blank');
   };
 
   if (!isOpen) return null;
@@ -61,40 +68,43 @@ export default function QueryHistory({ isOpen, onClose, onReRun }) {
         </div>
 
         {/* Toolbar */}
-        <div className="px-6 py-4 space-y-4 bg-white/[0.01]">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
-            <input 
-              type="text"
-              placeholder="Search SQL queries..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-white/[0.06] rounded-xl text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-primary/50 transition-all"
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 p-1 bg-black/40 rounded-xl border border-white/[0.06]">
-              {['all', 'bookmarked', 'agent', 'manual'].map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
-                    filter === f 
-                      ? 'bg-primary text-white shadow-lg' 
-                      : 'text-text-muted hover:text-text-primary'
-                  }`}
-                >
-                  {f}
-                </button>
-              ))}
+        <div className="px-6 py-4 border-b border-white/[0.02]">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+                <input 
+                  type="text"
+                  placeholder="Search queries..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-white/[0.02] border border-white/[0.08] rounded-xl text-[13px] text-text-primary placeholder:text-text-muted/40 focus:border-primary/40 focus:bg-white/[0.04] transition-all outline-none"
+                />
+              </div>
+              <div className="relative">
+                 <select 
+                    value={filter} 
+                    onChange={e => setFilter(e.target.value)}
+                    className="py-2 pl-3 pr-8 bg-white/[0.02] border border-white/[0.08] rounded-xl text-[13px] text-text-primary focus:border-primary/40 outline-none appearance-none font-medium cursor-pointer"
+                 >
+                    <option value="all" className="bg-card">All Queries</option>
+                    <option value="bookmarked" className="bg-card">Bookmarked</option>
+                    <option value="agent" className="bg-card">Agent</option>
+                    <option value="manual" className="bg-card">Manual</option>
+                 </select>
+                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" size={14} />
+              </div>
             </div>
-            <button 
-              onClick={clearHistory}
-              className="text-[10px] font-bold uppercase tracking-wider text-danger/60 hover:text-danger transition-colors flex items-center gap-1.5"
-            >
-              <Trash2 size={12} /> Clear All
-            </button>
+            
+            <div className="flex items-center justify-between px-1 text-[11px] font-medium text-text-muted">
+              <span>{filteredHistory.length} result{filteredHistory.length !== 1 ? 's' : ''} found</span>
+              <button 
+                onClick={clearHistory}
+                className="hover:text-danger flex items-center gap-1.5 transition-colors"
+              >
+                <Trash2 size={12} /> Clear History
+              </button>
+            </div>
           </div>
         </div>
 
@@ -140,6 +150,13 @@ export default function QueryHistory({ isOpen, onClose, onReRun }) {
                       title="Re-run query"
                     >
                       <Play size={16} />
+                    </button>
+                    <button 
+                      onClick={() => handleExport(item.sql_text, 'csv')}
+                      className="p-2 hover:bg-blue-500/10 text-text-muted hover:text-blue-500 rounded-lg transition-all"
+                      title="Export CSV"
+                    >
+                      <Download size={16} />
                     </button>
                     <button 
                       onClick={() => deleteHistoryItem(item.id)}

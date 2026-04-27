@@ -65,6 +65,20 @@ class MetaDB:
             )
         """)
         
+        # Audit Logs Table for Security Observability
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT DEFAULT 'anonymous',
+                sql_text TEXT,
+                was_blocked INTEGER DEFAULT 0,
+                block_reason TEXT,
+                rows_returned INTEGER DEFAULT 0,
+                execution_time TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
         conn.commit()
         conn.close()
 
@@ -245,3 +259,21 @@ class MetaDB:
             cursor.execute("UPDATE dashboard_widgets SET position = ? WHERE id = ?", (idx, widget_id))
         conn.commit()
         conn.close()
+
+    def log_audit(self, sql, was_blocked, block_reason=None, rows_returned=0, execution_time=None, user_id='anonymous'):
+        conn = self._get_conn()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO audit_logs (sql_text, was_blocked, block_reason, rows_returned, execution_time, user_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (sql, 1 if was_blocked else 0, block_reason, rows_returned, execution_time, user_id))
+        conn.commit()
+        conn.close()
+
+    def get_audit_logs(self, limit=100):
+        conn = self._get_conn()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT ?", (limit,))
+        rows = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return rows

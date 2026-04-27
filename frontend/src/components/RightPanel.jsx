@@ -6,16 +6,13 @@ import toast from 'react-hot-toast';
 
 const API_BASE = 'http://localhost:8000/api';
 
-export default function RightPanel({ isOpen, onToggle, activeTables, lastSql }) {
-  const [activeTab, setActiveTab] = useState('schema');
+export default function RightPanel({ isOpen, onToggle, activeTables }) {
   const [schemas, setSchemas] = useState({});
 
   useEffect(() => {
     if (!isOpen) return;
-    if (activeTab === 'schema') {
-      activeTables.forEach(t => fetchSchema(t));
-    }
-  }, [activeTab, activeTables, isOpen]);
+    activeTables.forEach(t => fetchSchema(t));
+  }, [activeTables, isOpen]);
 
   const fetchSchema = async (table) => {
     try {
@@ -26,15 +23,7 @@ export default function RightPanel({ isOpen, onToggle, activeTables, lastSql }) 
     }
   };
 
-  const handleExport = (format) => {
-    if (!lastSql) {
-      toast.error("No data to export. Run a query first!");
-      return;
-    }
-    const filename = `export_${Date.now()}.${format}`;
-    const url = `${API_BASE}/export/${format}?sql=${encodeURIComponent(lastSql)}&filename=${filename}`;
-    window.open(url, '_blank');
-  };
+
 
   // Count total columns across active schemas
   const totalColumns = Object.values(schemas).reduce((sum, s) => sum + (s ? s.length : 0), 0);
@@ -53,26 +42,16 @@ export default function RightPanel({ isOpen, onToggle, activeTables, lastSql }) 
         animate={{ opacity: isOpen ? 1 : 0, x: isOpen ? 0 : 30 }}
         className="w-full h-full glass border-l border-white/[0.04] flex flex-col overflow-hidden z-20"
       >
-        {/* Tabs */}
+        {/* Header */}
         <div className="flex border-b border-white/[0.04] bg-black/15">
-          {['schema', 'export'].map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-4 text-[10px] font-semibold uppercase tracking-wider transition-all relative ${
-                activeTab === tab ? 'text-primary' : 'text-text-muted/50 hover:text-text-muted'
-              }`}
-            >
-              {tab}
-              {activeTab === tab && (
-                <motion.div layoutId="tab-underline" className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full shadow-[0_0_8px_rgba(124,58,237,0.4)]" />
-              )}
-            </button>
-          ))}
+          <div className="flex-1 py-4 text-[10px] font-semibold uppercase tracking-wider text-primary text-center">
+            Database Schema
+            <motion.div layoutId="tab-underline" className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full shadow-[0_0_8px_rgba(124,58,237,0.4)]" />
+          </div>
         </div>
 
         {/* Quick Stats */}
-        {activeTab === 'schema' && activeTables.length > 0 && (
+        {activeTables.length > 0 && (
           <div className="px-5 py-3 border-b border-white/[0.04] bg-black/10 flex items-center gap-4">
             <div className="flex items-center gap-1.5">
               <Table size={11} className="text-primary/50" />
@@ -87,7 +66,6 @@ export default function RightPanel({ isOpen, onToggle, activeTables, lastSql }) 
 
         <div className="flex-1 overflow-y-auto scroll-thin p-4">
           <AnimatePresence mode="wait">
-            {activeTab === 'schema' && (
               <motion.div 
                 key="schema"
                 initial={{ opacity: 0, x: 15 }}
@@ -104,21 +82,6 @@ export default function RightPanel({ isOpen, onToggle, activeTables, lastSql }) 
                   <SchemaAccordion key={table} table={table} schema={schemas[table]} delay={idx * 0.08} />
                 ))}
               </motion.div>
-            )}
-
-            {activeTab === 'export' && (
-              <motion.div 
-                key="export"
-                initial={{ opacity: 0, x: 15 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -15 }}
-                className="space-y-3"
-              >
-                <ExportButton icon={<FileText className="text-blue-400" />} label="Last Result PDF" desc="Export as formatted PDF" onClick={() => handleExport('pdf')} />
-                <ExportButton icon={<Layout className="text-emerald-400" />} label="Last Result CSV" desc="Export as spreadsheet" onClick={() => handleExport('csv')} />
-                <ExportButton icon={<FileJson className="text-amber-400" />} label="Session Activity Log" desc="View agent session logs" onClick={() => window.open(`${API_BASE}/activity-log`, '_blank')} />
-              </motion.div>
-            )}
           </AnimatePresence>
         </div>
       </motion.aside>
@@ -193,21 +156,3 @@ function SchemaAccordion({ table, schema, delay }) {
   );
 }
 
-function ExportButton({ icon, label, desc, onClick }) {
-  return (
-    <motion.button 
-      whileHover={{ scale: 1.01, x: 3 }}
-      whileTap={{ scale: 0.99 }}
-      onClick={onClick}
-      className="w-full p-4 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-primary/20 hover:bg-primary/[0.03] transition-all flex items-center gap-4 group relative overflow-hidden text-left"
-    >
-      <div className="w-10 h-10 rounded-xl bg-black/25 flex items-center justify-center group-hover:scale-105 transition-all shadow-inner relative z-10 shrink-0">
-        {React.cloneElement(icon, { size: 18 })}
-      </div>
-      <div className="relative z-10">
-        <span className="text-sm font-semibold text-text-primary block">{label}</span>
-        {desc && <span className="text-[10px] text-text-muted/50 font-medium">{desc}</span>}
-      </div>
-    </motion.button>
-  );
-}

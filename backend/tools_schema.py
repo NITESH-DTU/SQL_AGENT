@@ -24,6 +24,23 @@ TOOLS_SCHEMA = [
     {
         "type": "function",
         "function": {
+            "name": "predictive_forecast",
+            "description": "Perform a linear regression time-series forecast on SQL data. Returns predicted values for future steps.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sql": {"type": "string", "description": "The SQL query to fetch data. MUST return two columns: an X column (e.g. date or time index) and a Y column (numeric value to predict)."},
+                    "future_steps": {"type": "integer", "description": "Number of future steps to predict."},
+                    "x_column": {"type": "string", "description": "Name of the X column in the result set"},
+                    "y_column": {"type": "string", "description": "Name of the Y column in the result set"}
+                },
+                "required": ["sql", "future_steps", "x_column", "y_column"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "get_table_schema",
             "description": "Get the schema (columns, types) of a specific table.",
             "parameters": {
@@ -355,6 +372,19 @@ TOOLS_SCHEMA = [
                     "file_path": {"type": "string"}
                 },
                 "required": ["file_path"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_business_definitions",
+            "description": "Retrieve official business logic (metrics, segments, formulas) from the Glossary. ALWAYS use this when a user asks for business terms like 'revenue' or 'active user'.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "search_term": {"type": "string", "description": "Optional keyword to search for specific definitions."}
+                }
             }
         }
     }

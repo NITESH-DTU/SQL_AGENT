@@ -1,0 +1,17 @@
+{
+    "metrics": {
+        "revenue": "The sum of the 'amount' column where 'status' is 'completed'. Formula: SUM(amount) FILTER (WHERE status = 'completed')",
+        "gross_margin": "The difference between total revenue and cost of goods sold, divided by total revenue. Formula: (SUM(revenue) - SUM(cogs)) / SUM(revenue)",
+        "ltv": "Life Time Value: The average revenue per user multiplied by the average customer lifespan.",
+        "churn_rate": "The percentage of service subscribers who discontinue their subscriptions within a given time period."
+    },
+    "segments": {
+        "active_user": "A user who has logged in or performed an action within the last 30 days.",
+        "whale": "A high-value user who has spent more than $500 in total transactions.",
+        "at_risk": "A customer who hasn't made a purchase in 60 days but was previously an active user."
+    },
+    "entities": {
+        "user": "Refers to the 'users' table. Primary key is 'id'.",
+        "transaction": "Refers to the 'orders' or 'payments' tables. Connects to users via 'user_id'."
+    }
+}

@@ -14,10 +14,14 @@ class SQLAgent:
         self.db_manager = db_manager
         self.active_tables = active_tables
         self.meta_db = meta_db
-        self.tools_executor = AgentTools(db_manager, active_tables)
+        self.tools_executor = AgentTools(db_manager, active_tables, meta_db)
         
         # Use OpenAI SDK pointed at Groq
         api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            print("\n❌ ERROR: GROQ_API_KEY NOT FOUND IN .ENV FILE\n")
+            raise ValueError("GROQ_API_KEY is not set. Please check your .env file in the backend directory.")
+            
         self.client = OpenAI(
             base_url="https://api.groq.com/openai/v1",
             api_key=api_key
@@ -31,6 +35,11 @@ Database type: {self.db_manager.db_type}
 Database name: {self.db_manager.db_name}
 
 You do not ask for permission — you act, analyze, and continue until the task is complete.
+
+BUSINESS GLOSSARY & SEMANTIC LAYER:
+- If the user asks for a business metric (like 'revenue', 'churn', 'LTV') or a segment (like 'active user'), you MUST call `get_business_definitions()` first.
+- NEVER guess the formula for a business term. Always use the definition provided in the Glossary.
+- Use the definitions to write more accurate SQL and provide better business context.
 
 CRITICAL TOOL CALLING RULES:
 - Use ONLY the provided tool functions via the standard tool calling interface.

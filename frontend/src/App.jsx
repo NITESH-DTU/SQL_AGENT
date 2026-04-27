@@ -12,6 +12,9 @@ import SQLConsole from './components/SQLConsole';
 import Dashboard from './components/Dashboard';
 import QueryHistory from './components/QueryHistory';
 import WidgetModal from './components/WidgetModal';
+import DataProfiler from './components/DataProfiler';
+import GlossaryManager from './components/GlossaryManager';
+import ERDVisualizer from './components/ERDVisualizer';
 import useDashboard from './hooks/useDashboard';
 import { useDatabase } from './hooks/useDatabase';
 import { useAgent } from './hooks/useAgent';
@@ -45,6 +48,9 @@ function App() {
   const [consoleQuery, setConsoleQuery] = useState('');
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isDataProfilerOpen, setIsDataProfilerOpen] = useState(false);
+  const [isGlossaryManagerOpen, setIsGlossaryManagerOpen] = useState(false);
+  const [isERDOpen, setIsERDOpen] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pinData, setPinData] = useState(null);
   const [browsingTable, setBrowsingTable] = useState(null);
@@ -92,6 +98,9 @@ function App() {
         }}
         onBrowseTable={(table) => setBrowsingTable(table)}
         onOpenDashboard={() => setIsDashboardOpen(true)}
+        onOpenDataProfiler={() => setIsDataProfilerOpen(true)}
+        onOpenGlossary={() => setIsGlossaryManagerOpen(true)}
+        onOpenERD={() => setIsERDOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
       />
 
@@ -106,6 +115,7 @@ function App() {
           isThinking={isThinking} 
           currentIteration={currentIteration} 
           onPin={handlePin}
+          onBrowseTable={(table) => setBrowsingTable(table)}
         />
       </main>
 
@@ -113,7 +123,6 @@ function App() {
         isOpen={isRightPanelOpen} 
         onToggle={() => setIsRightPanelOpen(!isRightPanelOpen)} 
         activeTables={activeTables}
-        lastSql={lastSql}
       />
 
       <AnimatePresence>
@@ -150,6 +159,7 @@ function App() {
             db={db}
             initialSql={consoleQuery}
             onPin={handlePin}
+            activeTables={activeTables}
           />
         )}
       </AnimatePresence>
@@ -161,6 +171,7 @@ function App() {
             onClose={() => setIsPinModalOpen(false)}
             onSave={addWidget}
             initialData={pinData}
+            activeTables={activeTables}
           />
         )}
       </AnimatePresence>
@@ -170,6 +181,7 @@ function App() {
           <Dashboard 
             isOpen={isDashboardOpen} 
             onClose={() => setIsDashboardOpen(false)} 
+            activeTables={activeTables}
           />
         )}
       </AnimatePresence>
@@ -185,10 +197,39 @@ function App() {
       </AnimatePresence>
 
       <AnimatePresence>
+        {isDataProfilerOpen && (
+          <DataProfiler 
+            isOpen={isDataProfilerOpen} 
+            onClose={() => setIsDataProfilerOpen(false)} 
+            activeTables={activeTables}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isGlossaryManagerOpen && (
+          <GlossaryManager 
+            isOpen={isGlossaryManagerOpen} 
+            onClose={() => setIsGlossaryManagerOpen(false)} 
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isERDOpen && (
+          <ERDVisualizer 
+            isOpen={isERDOpen} 
+            onClose={() => setIsERDOpen(false)} 
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {browsingTable && (
           <DataExplorer 
             table={browsingTable} 
             onClose={() => setBrowsingTable(null)} 
+            activeTables={activeTables}
           />
         )}
       </AnimatePresence>

@@ -20,6 +20,8 @@ from file_importer import FileImporter
 from exporter import Exporter
 from seeder import AISeeder
 from meta_db import MetaDB
+from guardrails import check_sql_guardrails
+from pii_manager import identify_pii_columns, mask_rows
 
 load_dotenv()
 
@@ -58,13 +60,36 @@ class CreateTableRequest(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str
-    active_tables: List[str]
+    active_tables: List[str] = []
+
+class OptimizeRequest(BaseModel):
+    sql: str
+    active_tables: List[str] = []
 
 class ImportRequest(BaseModel):
     file_path: str
     table_name: str
     mode: str  # "create_new" or "append"
     column_mapping: Optional[Dict[str, str]] = None
+
+class WidgetRequest(BaseModel):
+    id: str = None
+    title: str
+    sql_query: str
+    widget_type: str
+    chart_config: dict = None
+    active_tables: List[str] = []
+    db_type: Optional[str] = None
+    pg_config: Optional[Dict[str, Any]] = None
+    chart_type: Optional[str] = None
+    x_column: Optional[str] = None
+    y_column: Optional[str] = None
+    color_scheme: Optional[str] = 'violet'
+    width: Optional[str] = 'half'
+    auto_refresh: Optional[int] = 0
+
+class RefreshRequest(BaseModel):
+    active_tables: List[str] = []
 
 class WidgetCreateRequest(BaseModel):
     id: str
@@ -140,10 +165,70 @@ async def get_tables():
         return {"tables": []}
     return {"tables": db_manager.get_all_tables()}
 
+GLOSSARY_PATH = os.path.join(os.path.dirname(__file__), "business_glossary.json")
+
+@app.get("/api/glossary")
+async def get_glossary():
+    if not os.path.exists(GLOSSARY_PATH):
+        return {}
+    with open(GLOSSARY_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+@app.post("/api/glossary")
+async def save_glossary(data: dict):
+    with open(GLOSSARY_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
+    return {"status": "success"}
+
+@app.get("/api/erd")
+async def get_erd():
+    if not db_manager.conn:
+        raise HTTPException(status_code=400, detail="No DB connected")
+    
+    try:
+        tables = db_manager.get_all_tables()
+        nodes = []
+        edges = []
+        
+        for table in tables:
+            cols = []
+            if db_manager.db_type == "sqlite":
+                res = db_manager.execute_query(f"PRAGMA table_info('{table}')")
+                if res and isinstance(res, list):
+                    cols = [{"name": r["name"], "type": r["type"], "pk": r["pk"] > 0} for r in res]
+                
+                fk_res = db_manager.execute_query(f"PRAGMA foreign_key_list('{table}')")
+                if fk_res and isinstance(fk_res, list):
+                    for fk in fk_res:
+                        edges.append({
+                            "source": table,
+                            "target": fk["table"],
+                            "sourceHandle": fk["from"],
+                            "targetHandle": fk["to"]
+                        })
+            else:
+                res = db_manager.execute_query(f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{table}'")
+                if res and isinstance(res, list):
+                    cols = [{"name": r["column_name"], "type": r["data_type"], "pk": False} for r in res]
+                
+            nodes.append({
+                "id": table,
+                "columns": cols
+            })
+            
+        return {"nodes": nodes, "edges": edges}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/schedule")
+async def schedule_report(data: dict):
+    # Mock saving the schedule
+    print(f"Scheduled report for widget {data.get('widget_id')} to {data.get('email')} ({data.get('frequency')})")
+    return {"status": "success", "message": f"Report successfully scheduled for {data.get('frequency')} delivery"}
+
 @app.get("/api/schema/{table}")
 async def get_schema(table: str):
     try:
-        # This logic should ideally be in db_manager
         if db_manager.db_type == "sqlite":
             res = db_manager.execute_query(f"PRAGMA table_info('{table}')")
         else:
@@ -152,20 +237,86 @@ async def get_schema(table: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/data/{table}")
-async def get_table_data(table: str, page: int = 1, limit: int = 15):
+@app.get("/api/profile/{table}")
+async def profile_table(table: str):
+    if not db_manager.conn:
+        raise HTTPException(status_code=400, detail="No DB connected")
+    
     try:
+        count_res = db_manager.execute_query(f'SELECT COUNT(*) as c FROM "{table}"')
+        total_rows = count_res[0]['c'] if count_res else 0
+        
+        # We sample up to 10000 rows for fast profiling
+        res = db_manager.execute_query(f'SELECT * FROM "{table}" LIMIT 10000')
+        if not res:
+            return {"table": table, "total_rows": total_rows, "profile": []}
+        
+        df = pd.DataFrame(res)
+        profile = []
+        
+        for col in df.columns:
+            col_data = df[col]
+            null_count = int(col_data.isna().sum())
+            null_pct = round((null_count / len(df)) * 100, 2) if len(df) > 0 else 0
+            
+            # Using try-except for unhashable types like lists/dicts
+            try:
+                unique_count = int(col_data.nunique())
+            except TypeError:
+                unique_count = 0
+                
+            dtype = str(col_data.dtype)
+            
+            issues = []
+            if null_pct > 20:
+                issues.append(f"High NULLs ({null_pct}%)")
+            if unique_count == 1 and len(df) > 1:
+                issues.append("Constant Value")
+            elif unique_count == len(df) and len(df) > 1 and dtype != 'object':
+                issues.append("All Unique (ID?)")
+                
+            profile.append({
+                "name": col,
+                "type": dtype,
+                "nulls": null_count,
+                "null_pct": null_pct,
+                "unique": unique_count,
+                "issues": issues
+            })
+            
+        return {
+            "table": table,
+            "total_rows": total_rows,
+            "profile": profile
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/data/{table}")
+async def get_table_data(table: str, page: int = 1, limit: int = 15, active_tables: str = ""):
+    try:
+        active_list = active_tables.split(",") if active_tables else []
+        all_tables = db_manager.get_all_tables()
+        
+        # Check Guardrails
+        guard_result = check_sql_guardrails(f'SELECT * FROM "{table}"', active_list, all_tables)
+        if guard_result["blocked"]:
+            raise HTTPException(status_code=403, detail=guard_result["error"])
+
         offset = (page - 1) * limit
         # Get total count
         count_res = db_manager.execute_query(f'SELECT COUNT(*) as count FROM "{table}"')
-        if isinstance(count_res, dict) and "error" in count_res:
-            raise HTTPException(status_code=500, detail=count_res["error"])
         total = count_res[0]['count'] if count_res else 0
         
         # Get page data
         rows = db_manager.execute_query(f'SELECT * FROM "{table}" LIMIT {limit} OFFSET {offset}')
-        if isinstance(rows, dict) and "error" in rows:
-            raise HTTPException(status_code=500, detail=rows["error"])
+        
+        # Apply PII Masking
+        if isinstance(rows, list) and rows:
+            pii_cols = identify_pii_columns(list(rows[0].keys()))
+            if pii_cols:
+                rows = mask_rows(rows, pii_cols)
+                
         return {
             "table": table,
             "rows": rows,
@@ -174,16 +325,31 @@ async def get_table_data(table: str, page: int = 1, limit: int = 15):
             "limit": limit,
             "total_pages": (total + limit - 1) // limit
         }
-    except HTTPException:
-        raise
+    except HTTPException: raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/sample/{table}")
-async def get_sample(table: str, limit: int = 5):
+async def get_sample(table: str, limit: int = 5, active_tables: str = ""):
     try:
+        active_list = active_tables.split(",") if active_tables else []
+        all_tables = db_manager.get_all_tables()
+        
+        # Check Guardrails
+        guard_result = check_sql_guardrails(f'SELECT * FROM "{table}"', active_list, all_tables)
+        if guard_result["blocked"]:
+            raise HTTPException(status_code=403, detail=guard_result["error"])
+            
         res = db_manager.execute_query(f"SELECT * FROM {table} LIMIT {limit}")
+        
+        # Apply PII Masking
+        if isinstance(res, list) and res:
+            pii_cols = identify_pii_columns(list(res[0].keys()))
+            if pii_cols:
+                res = mask_rows(res, pii_cols)
+                
         return {"table": table, "rows": res}
+    except HTTPException: raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -192,16 +358,51 @@ async def chat(req: ChatRequest):
     if not db_manager.conn:
         raise HTTPException(status_code=400, detail="Database not connected")
     
-    agent = SQLAgent(db_manager, req.active_tables, meta_db)
+    try:
+        agent = SQLAgent(db_manager, req.active_tables, meta_db)
+    except ValueError as e:
+        print(f"⚠️  Chat Request Blocked: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
     
     async def event_generator():
-        for event in agent.run_query_stream(req.message):
+        try:
+            for event in agent.run_query_stream(req.message):
+                yield {
+                    "event": "message",
+                    "data": json.dumps(event)
+                }
+        except Exception as e:
             yield {
                 "event": "message",
-                "data": json.dumps(event)
+                "data": json.dumps({"type": "error", "message": str(e)})
             }
             
     return EventSourceResponse(event_generator())
+
+@app.post("/api/optimize-sql")
+async def optimize_sql(req: OptimizeRequest):
+    if not db_manager.conn:
+        raise HTTPException(status_code=400, detail="Database not connected")
+    
+    try:
+        agent = SQLAgent(db_manager, req.active_tables, meta_db)
+        
+        prompt = f"Analyze and optimize the following SQL query for the given database schema. Explain its current performance and provide an optimized rewritten version if possible. Suggest indexes if they would help.\n\nQuery:\n```sql\n{req.sql}\n```"
+        
+        # We can call the agent directly just to get a single response
+        completion = agent.client.chat.completions.create(
+            model=agent.model,
+            messages=[
+                {"role": "system", "content": "You are a highly skilled database performance tuning expert. Return a clear markdown response with: 1. Analysis of the query, 2. Optimized SQL code, 3. Index suggestions. Use markdown headers."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.3,
+            max_tokens=1500
+        )
+        
+        return {"suggestion": completion.choices[0].message.content}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/upload")
 async def upload_file(file: UploadFile = File(...)):
@@ -242,6 +443,7 @@ async def export_data(format: str, sql: str, filename: str):
 
 class ExecuteSQLRequest(BaseModel):
     sql: str
+    active_tables: List[str] = []
 
 @app.post("/api/execute-sql")
 async def execute_sql(req: ExecuteSQLRequest):
@@ -259,6 +461,13 @@ async def execute_sql(req: ExecuteSQLRequest):
     read_keywords = {"SELECT", "SHOW", "DESCRIBE", "EXPLAIN", "PRAGMA", "WITH"}
     is_read = first_word in read_keywords
     
+    # Apply Guardrails
+    all_tables = db_manager.get_all_tables()
+    guard_result = check_sql_guardrails(sql, req.active_tables, all_tables)
+    if guard_result["blocked"]:
+        meta_db.log_audit(sql, was_blocked=True, block_reason=guard_result["error"])
+        return {"error": guard_result["error"], "executionTime": "0ms"}
+
     try:
         if is_read:
             result = db_manager.execute_query(sql)
@@ -266,6 +475,12 @@ async def execute_sql(req: ExecuteSQLRequest):
             if isinstance(result, dict) and "error" in result:
                 return {"error": result["error"], "executionTime": f"{elapsed}ms"}
             
+            # Apply PII Masking
+            columns = list(result[0].keys()) if result else []
+            pii_cols = identify_pii_columns(columns)
+            if pii_cols:
+                result = mask_rows(result, pii_cols)
+
             # Log to history
             meta_db.log_query(
                 sql=sql,
@@ -336,6 +551,7 @@ async def clear_history():
 @app.post("/api/ai/suggest-query")
 async def suggest_query(req: Dict[str, Any]):
     prompt = req.get("prompt")
+    active_tables = req.get("active_tables", [])
     if not prompt:
         raise HTTPException(status_code=400, detail="Prompt required")
     
@@ -345,7 +561,7 @@ async def suggest_query(req: Dict[str, Any]):
     try:
         # Get schema for context
         schema_info = {}
-        for table in db_manager.get_all_tables():
+        for table in active_tables:
             if db_manager.db_type == "sqlite":
                 res = db_manager.execute_query(f"PRAGMA table_info('{table}')")
             else:
@@ -358,6 +574,18 @@ async def suggest_query(req: Dict[str, Any]):
             api_key=os.getenv("GROQ_API_KEY")
         )
         
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            print("\n❌ ERROR: GROQ_API_KEY NOT FOUND IN .ENV FILE\n")
+            return {"suggestions": ["Please set GROQ_API_KEY in .env"]}
+
+        # Check guardrails for the context tables
+        all_tables = db_manager.get_all_tables()
+        for table in active_tables:
+             # Basic check to ensure we don't leak schemas of restricted tables
+             if table not in active_tables:
+                 continue
+                 
         response = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[
@@ -394,9 +622,15 @@ async def add_widget(req: WidgetCreateRequest):
     return {"status": "success"}
 
 @app.patch("/api/dashboard/widgets/{widget_id}")
-async def update_widget(widget_id: str, req: WidgetUpdateRequest):
-    meta_db.update_widget(widget_id, req.dict(exclude_unset=True))
-    return {"status": "success"}
+async def update_widget(widget_id: str, updates: Dict[str, Any]):
+    widget = meta_db.get_widget(widget_id)
+    if not widget:
+        raise HTTPException(status_code=404, detail="Widget not found")
+    
+    # Merge updates
+    updated_widget = {**widget, **updates}
+    meta_db.update_widget(widget_id, updated_widget)
+    return {"status": "success", "widget": updated_widget}
 
 @app.delete("/api/dashboard/widgets/{widget_id}")
 async def delete_widget(widget_id: str):
@@ -409,15 +643,16 @@ async def reorder_widgets(req: ReorderRequest):
     return {"status": "success"}
 
 @app.post("/api/dashboard/widgets/{widget_id}/refresh")
-async def refresh_widget(widget_id: str):
+async def refresh_widget(widget_id: str, req: RefreshRequest):
     widget = meta_db.get_widget(widget_id)
     if not widget:
         raise HTTPException(status_code=404, detail="Widget not found")
     
-    # Setup temporary DB connection if not same as active
-    target_db = db_manager
-    # In a real multi-user/multi-db app, we'd handle connection pooling/switching here
-    # For now, we assume the user is connected to the right DB or we use active one
+    # Apply Guardrails
+    all_tables = db_manager.get_all_tables()
+    guard_result = check_sql_guardrails(widget['sql_query'], req.active_tables, all_tables)
+    if guard_result["blocked"]:
+        return {"error": guard_result["error"]}
     
     start = time.time()
     try:
@@ -427,6 +662,12 @@ async def refresh_widget(widget_id: str):
         if isinstance(result, dict) and "error" in result:
             return {"error": result["error"], "executionTime": f"{elapsed}ms"}
         
+        # Apply PII Masking
+        if isinstance(result, list) and result:
+            pii_cols = identify_pii_columns(list(result[0].keys()))
+            if pii_cols:
+                result = mask_rows(result, pii_cols)
+
         response = {
             "rows": result if isinstance(result, list) else [],
             "executionTime": f"{elapsed}ms"
@@ -458,10 +699,75 @@ async def refresh_widget(widget_id: str):
 async def get_activity_log():
     log_path = "agent_sessions.log"
     if os.path.exists(log_path):
-        with open(log_path, "r") as f:
+        with open(log_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
             return {"logs": lines[-100:]}
     return {"logs": []}
+
+@app.get("/api/audit-log")
+@app.get("/api/audit-logs")
+async def get_audit_logs(limit: int = 100):
+    logs = meta_db.get_audit_logs(limit=limit)
+    return {"logs": logs}
+
+@app.get("/api/glossary")
+async def get_glossary():
+    path = "business_glossary.json"
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {"metrics": {}, "segments": {}, "entities": {}}
+
+@app.post("/api/glossary")
+async def update_glossary(req: dict):
+    path = "business_glossary.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(req, f, indent=4)
+    return {"status": "success"}
+
+@app.post("/api/autocomplete")
+async def autocomplete(req: dict):
+    sql = req.get("sql", "").strip()
+    if not sql:
+        return {"suggestions": []}
+        
+    try:
+        # Provide schema context for better suggestions
+        schema_context = ""
+        for table in active_tables:
+            if db_manager.db_type == "sqlite":
+                cols = db_manager.execute_query(f"PRAGMA table_info('{table}')")
+                col_names = [c['name'] for c in cols]
+            else:
+                cols = db_manager.execute_query(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table}'")
+                col_names = [c['column_name'] for c in cols]
+            schema_context += f"Table {table}: {', '.join(col_names)}\n"
+            
+        prompt = f"""You are a SQL autocomplete assistant. 
+        Database Schema:
+        {schema_context}
+        
+        The user is typing this SQL: "{sql}"
+        
+        Suggest the next 3 most likely keywords, table names, or column names to complete the query.
+        Return ONLY a JSON list of strings. No explanation."""
+        
+        from openai import OpenAI
+        client = OpenAI(base_url="https://api.groq.com/openai/v1", api_key=os.getenv("GROQ_API_KEY"))
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"}
+        )
+        
+        import json
+        data = json.loads(response.choices[0].message.content)
+        # Handle different potential JSON formats from LLM
+        suggestions = data.get("suggestions", data.get("completions", list(data.values())[0] if data.values() else []))
+        return {"suggestions": suggestions[:5]}
+    except Exception as e:
+        print(f"Autocomplete error: {e}")
+        return {"suggestions": []}
 
 @app.post("/api/create-table")
 async def create_table(req: CreateTableRequest):

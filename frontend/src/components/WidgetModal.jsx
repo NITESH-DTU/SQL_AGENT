@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 
 const API_BASE = 'http://localhost:8000/api';
 
-export default function WidgetModal({ isOpen, onClose, onSave, initialData = null, startInAnalysisMode = false }) {
+export default function WidgetModal({ isOpen, onClose, onSave, initialData = null, startInAnalysisMode = false, activeTables = [] }) {
   const [formData, setFormData] = useState({
     title: '',
     widget_type: 'chart',
@@ -89,7 +89,10 @@ export default function WidgetModal({ isOpen, onClose, onSave, initialData = nul
     }
     setIsAiGenerating(true);
     try {
-      const res = await axios.post(`${API_BASE}/ai/suggest-query`, { prompt: aiPrompt });
+      const res = await axios.post(`${API_BASE}/ai/suggest-query`, { 
+        prompt: aiPrompt,
+        active_tables: activeTables
+      });
       setFormData(prev => ({ ...prev, sql_query: res.data.sql }));
       toast.success("Query generated!");
     } catch (err) {
@@ -103,7 +106,10 @@ export default function WidgetModal({ isOpen, onClose, onSave, initialData = nul
     if (!formData.sql_query.trim()) return;
     setIsExecuting(true);
     try {
-      const res = await axios.post(`${API_BASE}/execute-sql`, { sql: formData.sql_query });
+      const res = await axios.post(`${API_BASE}/execute-sql`, { 
+        sql: formData.sql_query,
+        active_tables: activeTables
+      });
       if (res.data.error) {
         toast.error(res.data.error);
         setPreviewData(null);

@@ -3,18 +3,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, LayoutDashboard, RefreshCw, Trash2, Edit3, 
   Plus, MousePointer2, Clock, Calendar, Database, Maximize2, Sparkles,
-  Search, Grid, List, Copy, GripVertical, Minimize2, Rocket
+  Search, Grid, List, Copy, GripVertical, Minimize2, Rocket, Send
 } from 'lucide-react';
 import useDashboard from '../hooks/useDashboard';
 import { MetricWidget, MiniTableWidget, ChartWidget } from './DashboardWidgets';
 import WidgetModal from './WidgetModal';
+import ScheduleModal from './ScheduleModal';
 
-export default function Dashboard({ isOpen, onClose }) {
+export default function Dashboard({ isOpen, onClose, activeTables = [] }) {
   const { widgets, isLoading, fetchWidgets, deleteWidget, refreshWidget, updateWidget, addWidget, reorderWidgets } = useDashboard();
   const [widgetData, setWidgetData] = useState({}); // { widgetId: { rows, trend, value } }
   const [isRefreshingAll, setIsRefreshingAll] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingWidget, setEditingWidget] = useState(null);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [schedulingWidget, setSchedulingWidget] = useState(null);
   const [startAnalysis, setStartAnalysis] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
@@ -27,9 +30,13 @@ export default function Dashboard({ isOpen, onClose }) {
   }, [isOpen, fetchWidgets]);
 
   const handleRefreshWidget = useCallback(async (widgetId) => {
-    const data = await refreshWidget(widgetId);
+    // If it's a cold start, wait a tiny bit for activeTables state to propagate
+    if (Object.keys(widgetData).length === 0) {
+      await new Promise(r => setTimeout(r, 200));
+    }
+    const data = await refreshWidget(widgetId, activeTables);
     setWidgetData(prev => ({ ...prev, [widgetId]: data }));
-  }, [refreshWidget]);
+  }, [refreshWidget, activeTables, widgetData]);
 
   const handleRefreshAll = async () => {
     setIsRefreshingAll(true);
@@ -56,15 +63,16 @@ export default function Dashboard({ isOpen, onClose }) {
   }, [widgets, handleRefreshWidget]);
 
   const handleSaveWidget = async (formData) => {
+    let targetId = editingWidget?.id;
     if (editingWidget && !formData.isClone) {
       await updateWidget(editingWidget.id, formData);
       setEditingWidget(null);
     } else {
-      // Remove isClone flag if present
       const { isClone, ...data } = formData;
-      await addWidget(data);
+      targetId = await addWidget(data);
     }
     fetchWidgets();
+    if (targetId) handleRefreshWidget(targetId);
   };
 
   const handleCloneWidget = (widget) => {
@@ -249,6 +257,13 @@ export default function Dashboard({ isOpen, onClose }) {
                           <Copy size={14} />
                         </button>
                         <button 
+                          onClick={() => { setSchedulingWidget(w); setIsScheduleModalOpen(true); }}
+                          className="p-1.5 hover:bg-indigo-500/10 rounded-lg text-text-muted hover:text-indigo-400 transition-colors"
+                          title="Schedule Report"
+                        >
+                          <Send size={14} />
+                        </button>
+                        <button 
                           onClick={() => setMaximizedWidgetId(isMaximized ? null : w.id)}
                           className={`p-1.5 rounded-lg transition-colors ${isMaximized ? 'bg-primary/20 text-primary' : 'hover:bg-white/5 text-text-muted hover:text-text-primary'}`}
                           title={isMaximized ? "Minimize" : "Maximize"}
@@ -287,7 +302,7 @@ export default function Dashboard({ isOpen, onClose }) {
                         <div className="h-full">
                           {w.widget_type === 'metric' ? (
                             <MetricWidget 
-                              data={widgetData[w.id]} 
+                              data={widgetData[w.id].rows} 
                               title={w.title} 
                               trend={widgetData[w.id].trend} 
                             />
@@ -333,6 +348,17 @@ export default function Dashboard({ isOpen, onClose }) {
             onSave={handleSaveWidget}
             initialData={editingWidget}
             startInAnalysisMode={startAnalysis}
+            activeTables={activeTables}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isScheduleModalOpen && (
+          <ScheduleModal 
+            isOpen={isScheduleModalOpen} 
+            onClose={() => { setIsScheduleModalOpen(false); setSchedulingWidget(null); }} 
+            widget={schedulingWidget}
           />
         )}
       </AnimatePresence>

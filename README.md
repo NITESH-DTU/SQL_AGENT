@@ -1,35 +1,40 @@
-# 🚀 SQL Agent v2.0: Autonomous Data Engineering Platform
+# 🚀 SQL Agent: Enterprise AI Business Intelligence Platform
 
-A powerful, production-grade Business Intelligence (BI) platform that combines autonomous AI data engineering with a high-performance analytics dashboard. Query, analyze, and visualize your data using natural language or professional SQL tools.
+A sophisticated, production-ready Business Intelligence (BI) and Data Engineering platform powered by autonomous AI. It bridges the gap between natural language and complex database operations, featuring AI-driven SQL generation, automated data governance, and an interactive, full-stack analytics dashboard.
 
 ![Aesthetic Dashboard Preview](https://img.shields.io/badge/Aesthetics-Premium-blueviolet?style=for-the-badge)
 ![Tech Stack](https://img.shields.io/badge/Stack-FastAPI%20%7C%20React%20%7C%20Framer%20Motion-blue?style=for-the-badge)
 
-## ✨ Core Features
+## ✨ Enterprise Capabilities & Core Features
 
-### 🤖 Autonomous SQL Agent
-*   **Natural Language to SQL**: Ask questions like *"Show me the distribution of users by age"* and watch the agent generate, execute, and analyze the SQL for you.
-*   **Auto-Visualization**: Automatically generates high-quality charts (Bar, Line, Pie, Area, Scatter) based on query results.
-*   **Self-Correction**: If a query fails, the agent automatically debugs the error and retries with a corrected statement.
+### 🤖 Autonomous AI SQL Agent
+*   **Natural Language to SQL**: Converts natural language questions (e.g., *"Show me the distribution of users by age"*) into highly optimized SQL, executing and analyzing it autonomously.
+*   **Self-Healing & Error Correction**: Built-in autonomous loop automatically debugs execution failures and retries corrected statements.
+*   **Auto-Visualization**: Intelligently determines the best chart type (Bar, Line, Pie, Area, Scatter) and generates high-quality visualizations from query results.
+
+### 🏛️ Enterprise Semantic Layer & Governance
+*   **Business Glossary Manager**: Centralized semantic layer to define business logic, terms, and custom metrics (e.g., defining "Active User"), ensuring the AI generates perfectly aligned queries.
+*   **Automated PII Masking**: Advanced data governance layer that dynamically identifies and masks Personally Identifiable Information before it hits the frontend.
+*   **Strict SQL Guardrails**: Enforces query safety, preventing destructive operations (DROP, DELETE, TRUNCATE) and mitigating SQL injection risks.
 
 ### 📊 Professional BI Dashboard
-*   **Interactive Widgets**: Pin charts, metrics, and tables from chat or console directly to your workspace.
-*   **Advanced Controls**: Search through widgets, toggle between Grid/List views, and maximize charts for deep inspection.
-*   **Persistence**: Your dashboard layout and data persist across sessions using a robust Meta-DB layer.
-*   **🚀 Seed Demo**: Instantly populate your dashboard with beautiful, live-verified charts to see the platform's full potential in one click.
+*   **Interactive Analytics**: Pin charts, metrics, and tables from the chat or SQL console directly to a persistent, interactive dashboard.
+*   **Automated Scheduled Reporting**: Set up scheduled generation and delivery of dashboards and key metrics.
+*   **Robust Persistence**: Dashboard layouts, widgets, and user history are reliably stored across sessions via a dedicated Meta-DB layer.
 
-### 🛠️ Data Engineering Tools
-*   **SQL Console**: IDE-grade manual query editor with history tracking and "Pin to Dashboard" support.
-*   **Table Builder**: Visual schema designer to create new tables with automatic AI seeding.
-*   **File Importer**: Seamlessly import data from **CSV, Excel, PDF, and DOCX** into your database.
-*   **Data Explorer**: High-performance browser for inspecting raw table data.
+### 🛠️ Advanced Data Engineering Tools
+*   **Database ERD Visualizer**: Automatically inspects database schemas and visualizes relationships in an interactive Entity-Relationship Diagram.
+*   **SQL Console**: IDE-grade manual query editor with history tracking, execution capabilities, and direct "Pin to Dashboard" support.
+*   **Smart Table Builder**: Visual schema designer that can create new tables and automatically populate them with AI-generated seed data.
+*   **Universal File Importer**: Seamlessly ingest and process data from **CSV, Excel, PDF, and DOCX** directly into your database tables.
+*   **Data Explorer & Profiler**: High-performance browser for inspecting raw table data and generating statistical data profiles.
 
 ## 🚀 Getting Started
 
 ### 1. Prerequisites
 *   Python 3.9+
 *   Node.js 18+
-*   OpenAI / Groq API Key
+*   OpenAI API Key or Groq API Key
 
 ### 2. Backend Setup
 ```bash
@@ -48,33 +53,28 @@ npm run dev
 
 ## 🏗️ Detailed Technology Stack
 
-### 🧠 Agentic & AI Layer
-*   **Agentic Framework**: Custom Autonomous Agent Loop with multi-step reasoning and self-correction.
-*   **LLM Provider**: **OpenAI SDK** / **Groq Cloud** (Llama 3.3 70B & DeepSeek R1 compatible).
-*   **LLM Tools**: Structured tool-calling for SQL generation, schema discovery, and diagnostic execution.
+### 🧠 Agentic AI Architecture
+*   **Agentic Framework**: Custom autonomous loop with multi-step reasoning, tool usage, and auto-correction.
+*   **LLM Integration**: Compatible with **OpenAI SDK** and **Groq Cloud** (Llama 3.3 70B, DeepSeek R1).
+*   **Structured Tools**: Advanced tool-calling for SQL generation, schema discovery, data profiling, and diagnostic execution.
 
 ### 🐍 Backend (Python)
-*   **FastAPI**: High-performance asynchronous API framework.
-*   **Pandas**: Robust data manipulation and analysis for query result processing.
-*   **SQLAlchemy**: Database abstraction and multi-dialect support (SQLite & PostgreSQL).
-*   **SSE (Server-Sent Events)**: Real-time streaming of agent thought processes and tool calls.
-*   **Guardrails**: Implementation of safety layers for SQL injection prevention and destructive query blocking.
+*   **FastAPI**: Asynchronous, high-performance API framework powering the application backend.
+*   **SQLAlchemy**: Robust ORM abstraction layer supporting multi-dialect database connections (SQLite & PostgreSQL).
+*   **Pandas**: Powering advanced data manipulation, file parsing, and analytical result processing.
+*   **SSE (Server-Sent Events)**: Real-time, bi-directional streaming of agent thought processes, tool calls, and execution steps.
+*   **Security & Governance Layers**: Built-in AST-based guardrails and regex-driven PII masking modules.
 
-### ⚛️ Frontend (React & JS)
-*   **React 18**: Modern UI library with functional components and custom hooks.
-*   **JavaScript (ES6+)**: Core logic for state management and API orchestration.
-*   **Framer Motion**: Advanced physics-based animations for a premium, interactive feel.
-*   **Recharts**: Composable charting library for dynamic data visualization.
-*   **Lucide Icons**: Consistent, high-quality iconography.
-*   **Tailwind CSS**: Utility-first CSS framework for custom design tokens and dark mode support.
-*   **Axios**: Promise-based HTTP client for seamless backend communication.
+### ⚛️ Frontend (React & JavaScript)
+*   **React 18 & Vite**: Modern UI architecture using functional components, context providers, and custom hooks.
+*   **Framer Motion**: Complex, physics-based micro-animations ensuring a premium, responsive user experience.
+*   **Recharts**: Highly customizable and dynamic data visualization engine.
+*   **Tailwind CSS**: Utility-first CSS framework enforcing custom design tokens, responsive layouts, and native dark mode.
+*   **React Flow**: Driving the interactive Database ERD Visualizer.
 
-### 🗄️ Storage & Persistence
-*   **Meta-DB**: SQLite-based persistence layer for dashboards, widgets, and user history.
-*   **Database Connectors**: Native support for **SQLite** (.db files) and **PostgreSQL**.
-
-## 🛡️ Data Safety & Guardrails
-The platform includes built-in SQL guardrails to prevent destructive operations and ensures all AI-generated queries are safe to execute before they touch your database.
+### 🗄️ Storage & Infrastructure
+*   **Meta-DB**: Dedicated SQLite-based state manager for caching dashboards, configuration, and agent history.
+*   **Data Sources**: Native, dynamic connection pooling for **SQLite** (.db files) and **PostgreSQL** databases.
 
 ---
 *Built with ❤️ by Nitesh Kaushik (DTU'27).*

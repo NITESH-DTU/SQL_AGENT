@@ -6,7 +6,7 @@ export default function DBModal({ onClose, onConnect }) {
   const [tab, setTab] = useState('existing');
   const [dbType, setDbType] = useState('sqlite');
   const [form, setForm] = useState({
-    filepath: 'antigravity.db',
+    filepath: 'database.db',
     host: 'localhost',
     port: '5432',
     dbname: '',

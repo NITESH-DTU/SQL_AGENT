@@ -53,9 +53,11 @@ export default function useDashboard() {
     }
   };
 
-  const refreshWidget = async (widgetId) => {
+  const refreshWidget = async (widgetId, activeTables = []) => {
     try {
-      const res = await axios.post(`${API_BASE}/dashboard/widgets/${widgetId}/refresh`);
+      const res = await axios.post(`${API_BASE}/dashboard/widgets/${widgetId}/refresh`, {
+        active_tables: activeTables
+      });
       if (res.data.error) {
         return { error: res.data.error };
       }

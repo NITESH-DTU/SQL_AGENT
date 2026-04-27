@@ -1,15 +1,18 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Play, Clock, Terminal, Trash2, ChevronRight, AlertCircle, CheckCircle2, Table as TableIcon, Copy, RotateCcw, Loader2, Database, Hash, Timer, LayoutDashboard } from 'lucide-react';
+import { X, Play, Clock, Terminal, Trash2, ChevronRight, AlertCircle, CheckCircle2, Table as TableIcon, Copy, RotateCcw, Loader2, Database, Hash, Timer, LayoutDashboard, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import Editor from '@monaco-editor/react';
 
 const API_BASE = 'http://localhost:8000/api';
 
-export default function SQLConsole({ onClose, db, initialSql = '', onPin }) {
+export default function SQLConsole({ onClose, db, initialSql = '', onPin, activeTables }) {
   const [sql, setSql] = useState(initialSql);
   const [result, setResult] = useState(null);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [optimizationResult, setOptimizationResult] = useState(null);
   const [history, setHistory] = useState(() => {
     const saved = localStorage.getItem('sql_console_history');
     return saved ? JSON.parse(saved) : [];
@@ -35,9 +38,13 @@ export default function SQLConsole({ onClose, db, initialSql = '', onPin }) {
 
     setIsExecuting(true);
     setResult(null);
+    setOptimizationResult(null);
 
     try {
-      const res = await axios.post(`${API_BASE}/execute-sql`, { sql: sql.trim() });
+      const res = await axios.post(`${API_BASE}/execute-sql`, { 
+        sql: sql.trim(),
+        active_tables: activeTables 
+      });
       const data = res.data;
 
       setResult(data);
@@ -60,30 +67,32 @@ export default function SQLConsole({ onClose, db, initialSql = '', onPin }) {
     } finally {
       setIsExecuting(false);
     }
-  }, [sql, isExecuting, history]);
+  }, [sql, isExecuting, history, activeTables]);
 
-  const handleKeyDown = (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      e.preventDefault();
-      executeQuery();
-    }
-    // Tab key for indentation
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const start = e.target.selectionStart;
-      const end = e.target.selectionEnd;
-      const value = e.target.value;
-      setSql(value.substring(0, start) + '  ' + value.substring(end));
-      setTimeout(() => {
-        e.target.selectionStart = e.target.selectionEnd = start + 2;
-      }, 0);
+  const optimizeQuery = async () => {
+    if (!sql.trim() || isOptimizing) return;
+    setIsOptimizing(true);
+    setOptimizationResult(null);
+    setResult(null);
+    try {
+      const res = await axios.post(`${API_BASE}/optimize-sql`, { sql: sql.trim(), active_tables: activeTables });
+      setOptimizationResult(res.data.suggestion);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || err.message || 'Optimization failed');
+    } finally {
+      setIsOptimizing(false);
     }
   };
+
+  // Use a ref to avoid stale closures in Monaco
+  const executeQueryRef = useRef(executeQuery);
+  useEffect(() => {
+    executeQueryRef.current = executeQuery;
+  }, [executeQuery]);
 
   const loadFromHistory = (entry) => {
     setSql(entry.sql);
     setActiveTab('editor');
-    if (textareaRef.current) textareaRef.current.focus();
   };
 
   const clearHistory = () => {
@@ -184,25 +193,69 @@ export default function SQLConsole({ onClose, db, initialSql = '', onPin }) {
                     </button>
                   </div>
                 </div>
-                <div className="flex relative">
-                  {/* Line Numbers */}
-                  <div className="w-12 flex-none bg-black/30 border-r border-white/[0.04] py-4 select-none">
-                    {Array.from({ length: lineCount }, (_, i) => (
-                      <div key={i} className="px-3 text-right text-[11px] font-mono text-text-muted/25 leading-[22px]">
-                        {i + 1}
-                      </div>
-                    ))}
+                  <div className="border-b border-white/[0.06] bg-black/20">
+                    <Editor
+                      height="300px"
+                      defaultLanguage="sql"
+                      theme="vs-dark"
+                      value={sql}
+                      onChange={(value) => setSql(value || '')}
+                      onMount={(editor, monaco) => {
+                        // Register Autocomplete
+                        monaco.languages.registerCompletionItemProvider('sql', {
+                          provideCompletionItems: async (model, position) => {
+                            const word = model.getWordUntilPosition(position);
+                            const range = {
+                              startLineNumber: position.lineNumber,
+                              endLineNumber: position.lineNumber,
+                              startColumn: word.startColumn,
+                              endColumn: word.endColumn,
+                            };
+                            
+                            const textUntilPosition = model.getValueInRange({
+                              startLineNumber: 1,
+                              startColumn: 1,
+                              endLineNumber: position.lineNumber,
+                              endColumn: position.column,
+                            });
+
+                            try {
+                              const res = await axios.post(`${API_BASE}/autocomplete`, { sql: textUntilPosition });
+                              const suggestions = res.data.suggestions || [];
+                              
+                              return {
+                                suggestions: suggestions.map(s => ({
+                                  label: s,
+                                  kind: monaco.languages.CompletionItemKind.Method,
+                                  insertText: s,
+                                  range: range,
+                                }))
+                              };
+                            } catch (e) {
+                              return { suggestions: [] };
+                            }
+                          }
+                        });
+                        
+                        // Handle Ctrl+Enter
+                        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+                          if (executeQueryRef.current) executeQueryRef.current();
+                        });
+                      }}
+                      options={{
+                        minimap: { enabled: false },
+                        fontSize: 14,
+                        fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                        lineNumbers: 'on',
+                        roundedSelection: false,
+                        scrollBeyondLastLine: false,
+                        readOnly: false,
+                        automaticLayout: true,
+                        padding: { top: 16, bottom: 16 },
+                        backgroundColor: 'transparent'
+                      }}
+                    />
                   </div>
-                  <textarea
-                    ref={textareaRef}
-                    value={sql}
-                    onChange={(e) => setSql(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="SELECT * FROM users LIMIT 10;"
-                    className="flex-1 bg-transparent p-4 font-mono text-sm text-text-primary leading-[22px] resize-none focus:outline-none min-h-[140px] max-h-[250px] scroll-thin sql-editor placeholder:text-text-muted/20"
-                    spellCheck={false}
-                  />
-                </div>
                 {/* Execute Bar */}
                 <div className="flex items-center justify-between px-6 py-3 bg-black/20 border-t border-white/[0.04]">
                   <span className="text-[10px] text-text-muted/50 font-medium">
@@ -211,26 +264,57 @@ export default function SQLConsole({ onClose, db, initialSql = '', onPin }) {
                     <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] text-text-muted/60 font-mono text-[9px] border border-white/[0.08]">Enter</kbd>
                     {' to execute'}
                   </span>
-                  <button
-                    onClick={executeQuery}
-                    disabled={!sql.trim() || isExecuting}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/85 disabled:opacity-30 disabled:cursor-not-allowed text-white text-xs font-bold uppercase tracking-wider shadow-lg shadow-primary/25 hover:shadow-primary/35 transition-all active:scale-[0.97]"
-                  >
-                    {isExecuting ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-                    {isExecuting ? 'Executing...' : 'Run Query'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={optimizeQuery}
+                      disabled={!sql.trim() || isOptimizing || isExecuting}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold uppercase tracking-wider transition-all"
+                    >
+                      {isOptimizing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                      {isOptimizing ? 'Analyzing...' : 'AI Optimize'}
+                    </button>
+                    <button
+                      onClick={executeQuery}
+                      disabled={!sql.trim() || isExecuting || isOptimizing}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/85 disabled:opacity-30 disabled:cursor-not-allowed text-white text-xs font-bold uppercase tracking-wider shadow-lg shadow-primary/25 hover:shadow-primary/35 transition-all active:scale-[0.97]"
+                    >
+                      {isExecuting ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+                      {isExecuting ? 'Executing...' : 'Run Query'}
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Results Area */}
               <div className="flex-1 overflow-auto scroll-thin">
-                {isExecuting ? (
+                {isExecuting || isOptimizing ? (
                   <div className="h-full flex flex-col items-center justify-center gap-4 py-16">
                     <div className="relative">
                       <div className="absolute inset-0 bg-primary/15 blur-2xl rounded-full" />
                       <Loader2 size={36} className="text-primary animate-spin relative z-10" />
                     </div>
-                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-text-muted animate-pulse">Executing Query...</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-text-muted animate-pulse">
+                      {isOptimizing ? 'AI Analyzing Query...' : 'Executing Query...'}
+                    </p>
+                  </div>
+                ) : optimizationResult ? (
+                  <div className="p-8">
+                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/[0.06]">
+                      <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
+                        <Sparkles size={20} />
+                      </div>
+                      <h3 className="text-lg font-bold text-text-primary">AI Optimization Report</h3>
+                    </div>
+                    <div className="prose prose-invert max-w-none text-sm text-text-muted">
+                      {optimizationResult.split('\n').map((line, i) => {
+                        if (line.startsWith('### ')) return <h4 key={i} className="text-sm font-bold text-text-primary mt-4 mb-2">{line.slice(4)}</h4>;
+                        if (line.startsWith('## ')) return <h3 key={i} className="text-base font-bold text-text-primary mt-6 mb-3">{line.slice(3)}</h3>;
+                        if (line.startsWith('# ')) return <h2 key={i} className="text-lg font-bold text-text-primary mt-8 mb-4">{line.slice(2)}</h2>;
+                        if (line.startsWith('```sql')) return null;
+                        if (line.startsWith('```')) return <div key={i} className="h-4" />;
+                        return <p key={i} className="mb-2 leading-relaxed">{line}</p>;
+                      })}
+                    </div>
                   </div>
                 ) : result ? (
                   <div className="h-full flex flex-col">

@@ -14,8 +14,10 @@ const COLORS = {
 };
 
 export function MetricWidget({ data, title, trend }) {
-  const value = data?.value ?? '0';
-  const displayTrend = data?.trend || trend || 'neutral';
+  // If data is a row object, take the first value
+  const rowData = Array.isArray(data) ? data[0] : data;
+  const value = rowData ? Object.values(rowData)[0] : '0';
+  const displayTrend = rowData?.trend || trend || 'neutral';
 
   return (
     <div className="flex flex-col items-center justify-center h-full py-4">
