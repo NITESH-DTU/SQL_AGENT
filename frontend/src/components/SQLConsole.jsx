@@ -135,7 +135,7 @@ export default function SQLConsole({ onClose, db, initialSql = '', onPin, active
               <h2 className="text-xl font-bold tracking-tight text-gradient">SQL Console</h2>
               <div className="flex items-center gap-2 mt-0.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-                <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">{db?.name || 'No DB'} • {db?.type || 'N/A'}</span>
+                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{db?.name || 'No DB'} • {db?.type || 'N/A'}</span>
               </div>
             </div>
           </div>
@@ -146,7 +146,7 @@ export default function SQLConsole({ onClose, db, initialSql = '', onPin, active
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
-                    activeTab === tab ? 'bg-primary/15 text-primary border border-primary/25' : 'text-text-muted hover:text-text-primary border border-transparent'
+                    activeTab === tab ? 'bg-primary/15 text-primary border border-primary/25' : 'text-gray-400 hover:text-white border border-transparent'
                   }`}
                 >
                   {tab === 'editor' ? <Terminal size={12} className="inline mr-1.5" /> : <Clock size={12} className="inline mr-1.5" />}
@@ -154,7 +154,7 @@ export default function SQLConsole({ onClose, db, initialSql = '', onPin, active
                 </button>
               ))}
             </div>
-            <button onClick={onClose} className="w-9 h-9 flex items-center justify-center hover:bg-white/[0.06] rounded-xl transition-all text-text-muted hover:text-white">
+            <button onClick={onClose} className="w-9 h-9 flex items-center justify-center hover:bg-white/[0.06] rounded-xl transition-all text-gray-400 hover:text-white">
               <X size={20} />
             </button>
           </div>
@@ -174,19 +174,19 @@ export default function SQLConsole({ onClose, db, initialSql = '', onPin, active
                 <div className="flex items-center justify-between px-6 py-2 bg-black/20">
                   <div className="flex items-center gap-3">
                     <span className="label-caps text-primary/60">Query Editor</span>
-                    <span className="text-[9px] font-mono text-text-muted/40">{lineCount} line{lineCount !== 1 ? 's' : ''}</span>
+                    <span className="text-[9px] font-mono text-gray-400/40">{lineCount} line{lineCount !== 1 ? 's' : ''}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setSql('')}
-                      className="p-1.5 rounded-lg text-text-muted/40 hover:text-text-muted hover:bg-white/[0.04] transition-all"
+                      className="p-1.5 rounded-lg text-gray-400/40 hover:text-gray-400 hover:bg-white/[0.04] transition-all"
                       title="Clear editor"
                     >
                       <RotateCcw size={13} />
                     </button>
                     <button
                       onClick={() => copyToClipboard(sql)}
-                      className="p-1.5 rounded-lg text-text-muted/40 hover:text-text-muted hover:bg-white/[0.04] transition-all"
+                      className="p-1.5 rounded-lg text-gray-400/40 hover:text-gray-400 hover:bg-white/[0.04] transition-all"
                       title="Copy query"
                     >
                       <Copy size={13} />
@@ -258,10 +258,10 @@ export default function SQLConsole({ onClose, db, initialSql = '', onPin, active
                   </div>
                 {/* Execute Bar */}
                 <div className="flex items-center justify-between px-6 py-3 bg-black/20 border-t border-white/[0.04]">
-                  <span className="text-[10px] text-text-muted/50 font-medium">
-                    <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] text-text-muted/60 font-mono text-[9px] border border-white/[0.08]">Ctrl</kbd>
+                  <span className="text-[10px] text-gray-400/50 font-medium">
+                    <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] text-gray-400/60 font-mono text-[9px] border border-white/[0.08]">Ctrl</kbd>
                     {' + '}
-                    <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] text-text-muted/60 font-mono text-[9px] border border-white/[0.08]">Enter</kbd>
+                    <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] text-gray-400/60 font-mono text-[9px] border border-white/[0.08]">Enter</kbd>
                     {' to execute'}
                   </span>
                   <div className="flex items-center gap-2">
@@ -293,7 +293,7 @@ export default function SQLConsole({ onClose, db, initialSql = '', onPin, active
                       <div className="absolute inset-0 bg-primary/15 blur-2xl rounded-full" />
                       <Loader2 size={36} className="text-primary animate-spin relative z-10" />
                     </div>
-                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-text-muted animate-pulse">
+                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-gray-400 animate-pulse">
                       {isOptimizing ? 'AI Analyzing Query...' : 'Executing Query...'}
                     </p>
                   </div>
@@ -303,13 +303,13 @@ export default function SQLConsole({ onClose, db, initialSql = '', onPin, active
                       <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
                         <Sparkles size={20} />
                       </div>
-                      <h3 className="text-lg font-bold text-text-primary">AI Optimization Report</h3>
+                      <h3 className="text-lg font-bold text-white">AI Optimization Report</h3>
                     </div>
-                    <div className="prose prose-invert max-w-none text-sm text-text-muted">
+                    <div className="prose prose-invert max-w-none text-sm text-gray-400">
                       {optimizationResult.split('\n').map((line, i) => {
-                        if (line.startsWith('### ')) return <h4 key={i} className="text-sm font-bold text-text-primary mt-4 mb-2">{line.slice(4)}</h4>;
-                        if (line.startsWith('## ')) return <h3 key={i} className="text-base font-bold text-text-primary mt-6 mb-3">{line.slice(3)}</h3>;
-                        if (line.startsWith('# ')) return <h2 key={i} className="text-lg font-bold text-text-primary mt-8 mb-4">{line.slice(2)}</h2>;
+                        if (line.startsWith('### ')) return <h4 key={i} className="text-sm font-bold text-white mt-4 mb-2">{line.slice(4)}</h4>;
+                        if (line.startsWith('## ')) return <h3 key={i} className="text-base font-bold text-white mt-6 mb-3">{line.slice(3)}</h3>;
+                        if (line.startsWith('# ')) return <h2 key={i} className="text-lg font-bold text-white mt-8 mb-4">{line.slice(2)}</h2>;
                         if (line.startsWith('```sql')) return null;
                         if (line.startsWith('```')) return <div key={i} className="h-4" />;
                         return <p key={i} className="mb-2 leading-relaxed">{line}</p>;
@@ -334,13 +334,13 @@ export default function SQLConsole({ onClose, db, initialSql = '', onPin, active
                       </div>
                       <div className="flex items-center gap-4">
                         {result.executionTime && (
-                          <div className="flex items-center gap-1.5 text-[10px] text-text-muted font-mono">
+                          <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-mono">
                             <Timer size={11} />
                             {result.executionTime}
                           </div>
                         )}
                         {result.rowCount !== undefined && (
-                          <div className="flex items-center gap-1.5 text-[10px] text-text-muted font-mono">
+                          <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-mono">
                             <Hash size={11} />
                             {result.rowCount} row{result.rowCount !== 1 ? 's' : ''}
                           </div>
@@ -373,7 +373,7 @@ export default function SQLConsole({ onClose, db, initialSql = '', onPin, active
                           <table className="w-full text-left border-collapse min-w-max">
                             <thead className="sticky top-0 bg-surface/95 backdrop-blur-xl z-10">
                               <tr>
-                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-text-muted/50 border-b border-white/[0.06] w-12 text-center">#</th>
+                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-gray-400/50 border-b border-white/[0.06] w-12 text-center">#</th>
                                 {result.columns.map(col => (
                                   <th key={col} className="px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-primary/70 border-b border-white/[0.06]">
                                     {col}
@@ -384,10 +384,10 @@ export default function SQLConsole({ onClose, db, initialSql = '', onPin, active
                             <tbody className="divide-y divide-white/[0.03]">
                               {result.rows.map((row, i) => (
                                 <tr key={i} className="hover:bg-white/[0.02] transition-colors group">
-                                  <td className="px-4 py-3 text-[10px] font-mono text-text-muted/30 text-center">{i + 1}</td>
+                                  <td className="px-4 py-3 text-[10px] font-mono text-gray-400/30 text-center">{i + 1}</td>
                                   {result.columns.map(col => (
-                                    <td key={col} className="px-5 py-3 text-sm font-medium text-text-muted group-hover:text-text-primary transition-colors font-mono">
-                                      {row[col] === null ? <span className="text-text-muted/20 italic text-xs">NULL</span> : String(row[col])}
+                                    <td key={col} className="px-5 py-3 text-sm font-medium text-gray-400 group-hover:text-white transition-colors font-mono">
+                                      {row[col] === null ? <span className="text-gray-400/20 italic text-xs">NULL</span> : String(row[col])}
                                     </td>
                                   ))}
                                 </tr>
@@ -396,8 +396,8 @@ export default function SQLConsole({ onClose, db, initialSql = '', onPin, active
                           </table>
                         ) : (
                           <div className="p-12 text-center">
-                            <Database size={32} className="mx-auto text-text-muted/20 mb-3" />
-                            <p className="text-xs font-bold uppercase tracking-wider text-text-muted/40">Query returned 0 rows</p>
+                            <Database size={32} className="mx-auto text-gray-400/20 mb-3" />
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-400/40">Query returned 0 rows</p>
                           </div>
                         )}
                       </div>
@@ -406,8 +406,8 @@ export default function SQLConsole({ onClose, db, initialSql = '', onPin, active
                         <div className="w-14 h-14 rounded-2xl bg-success/10 flex items-center justify-center mx-auto mb-4 border border-success/20">
                           <CheckCircle2 size={28} className="text-success" />
                         </div>
-                        <p className="text-sm font-bold text-text-primary mb-1">Statement Executed Successfully</p>
-                        <p className="text-xs text-text-muted">{result.executionTime}</p>
+                        <p className="text-sm font-bold text-white mb-1">Statement Executed Successfully</p>
+                        <p className="text-xs text-gray-400">{result.executionTime}</p>
                       </div>
                     )}
                   </div>
@@ -452,10 +452,10 @@ export default function SQLConsole({ onClose, db, initialSql = '', onPin, active
                       className="w-full text-left p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:border-primary/25 hover:bg-primary/[0.03] transition-all group"
                     >
                       <div className="flex items-start justify-between gap-4">
-                        <pre className="text-xs font-mono text-text-muted group-hover:text-text-primary transition-colors truncate flex-1 whitespace-pre-wrap max-h-16 overflow-hidden">
+                        <pre className="text-xs font-mono text-gray-400 group-hover:text-white transition-colors truncate flex-1 whitespace-pre-wrap max-h-16 overflow-hidden">
                           {entry.sql}
                         </pre>
-                        <ChevronRight size={14} className="text-text-muted/30 group-hover:text-primary shrink-0 mt-0.5 transition-colors" />
+                        <ChevronRight size={14} className="text-gray-400/30 group-hover:text-primary shrink-0 mt-0.5 transition-colors" />
                       </div>
                       <div className="flex items-center gap-4 mt-2.5">
                         <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
@@ -464,10 +464,10 @@ export default function SQLConsole({ onClose, db, initialSql = '', onPin, active
                           {entry.type}
                         </span>
                         {entry.rowCount > 0 && (
-                          <span className="text-[9px] font-mono text-text-muted/40">{entry.rowCount} rows</span>
+                          <span className="text-[9px] font-mono text-gray-400/40">{entry.rowCount} rows</span>
                         )}
-                        <span className="text-[9px] font-mono text-text-muted/40">{entry.executionTime}</span>
-                        <span className="text-[9px] font-mono text-text-muted/30 ml-auto">
+                        <span className="text-[9px] font-mono text-gray-400/40">{entry.executionTime}</span>
+                        <span className="text-[9px] font-mono text-gray-400/30 ml-auto">
                           {new Date(entry.timestamp).toLocaleTimeString()}
                         </span>
                       </div>

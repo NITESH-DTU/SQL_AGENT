@@ -79,6 +79,14 @@ class MetaDB:
             )
         """)
         
+        # App Settings Table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS app_settings (
+                key_name TEXT PRIMARY KEY,
+                key_value TEXT
+            )
+        """)
+        
         conn.commit()
         conn.close()
 
@@ -277,3 +285,23 @@ class MetaDB:
         rows = [dict(row) for row in cursor.fetchall()]
         conn.close()
         return rows
+
+    # --- Settings Methods ---
+    def get_settings(self):
+        conn = self._get_conn()
+        cursor = conn.cursor()
+        cursor.execute("SELECT key_name, key_value FROM app_settings")
+        rows = cursor.fetchall()
+        settings = {}
+        for row in rows:
+            settings[row['key_name']] = row['key_value']
+        conn.close()
+        return settings
+
+    def update_settings(self, settings):
+        conn = self._get_conn()
+        cursor = conn.cursor()
+        for k, v in settings.items():
+            cursor.execute("INSERT OR REPLACE INTO app_settings (key_name, key_value) VALUES (?, ?)", (k, v))
+        conn.commit()
+        conn.close()

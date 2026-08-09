@@ -5,10 +5,15 @@
 
 @layer base {
   body {
-    @apply bg-background text-text-primary font-sans antialiased selection:bg-primary/30 selection:text-primary;
+    @apply bg-background text-text-primary font-sans antialiased;
     margin: 0;
     min-height: 100vh;
     letter-spacing: -0.01em;
+    background-color: #f8f9fc;
+    /* Subtle pearl mesh background */
+    background-image:
+      radial-gradient(ellipse at 10% 20%, rgba(79,70,229,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 90% 80%, rgba(6,182,212,0.05) 0%, transparent 60%);
   }
 
   * {
@@ -16,102 +21,177 @@
   }
 
   ::placeholder {
-    @apply text-text-muted/40;
+    @apply text-text-muted/50;
+  }
+
+  ::selection {
+    background: rgba(79, 70, 229, 0.15);
+    color: #4f46e5;
   }
 }
 
 @layer components {
+
+  /* ── Glass surface ─────────────────────────────────── */
   .glass {
-    @apply bg-card/40 backdrop-blur-xl border border-white/[0.06] shadow-[0_8px_32px_0_rgba(0,0,0,0.45)];
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow:
+      0 1px 3px rgba(15,23,42,0.06),
+      0 8px 32px rgba(15,23,42,0.06),
+      inset 0 1px 0 rgba(255,255,255,0.9);
   }
-  
+
   .glass-card {
-    @apply bg-card/60 backdrop-blur-md border border-primary/15 shadow-lg transition-all duration-300;
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(79, 70, 229, 0.12);
+    box-shadow: 0 4px 16px rgba(15,23,42,0.06);
+    transition: all 0.25s ease;
   }
-  
+
   .glass-card:hover {
-    @apply border-primary/35 bg-card/80;
+    border-color: rgba(79, 70, 229, 0.28);
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 8px 24px rgba(79,70,229,0.08);
   }
 
   .glass-surface {
-    @apply bg-surface/60 backdrop-blur-lg border border-white/[0.04] shadow-xl;
+    background: rgba(248, 249, 252, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    box-shadow: 0 2px 12px rgba(15,23,42,0.05);
   }
 
-  .glow-border {
-    @apply border border-primary/25 hover:border-primary/50 transition-all duration-200;
-  }
-
+  /* ── Buttons ────────────────────────────────────────── */
   .btn-primary {
-    @apply px-4 py-2 bg-primary hover:bg-primary/85 text-white rounded-xl font-semibold transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-[0.98];
+    @apply px-4 py-2 rounded-xl font-semibold transition-all duration-200
+           disabled:opacity-40 disabled:cursor-not-allowed
+           flex items-center justify-center gap-2 active:scale-[0.98];
+    background: linear-gradient(135deg, #4f46e5, #6366f1);
+    color: white;
+    box-shadow: 0 2px 8px rgba(79,70,229,0.28), 0 1px 2px rgba(79,70,229,0.18);
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #4338ca, #4f46e5);
+    box-shadow: 0 4px 16px rgba(79,70,229,0.32), 0 2px 4px rgba(79,70,229,0.2);
+    transform: translateY(-1px);
   }
 
   .btn-secondary {
-    @apply px-4 py-2 bg-surface-elevated hover:bg-card border border-white/[0.08] text-text-primary rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 hover:border-primary/25;
+    @apply px-4 py-2 rounded-xl font-semibold transition-all duration-200
+           flex items-center justify-center gap-2;
+    background: white;
+    border: 1px solid rgba(15, 23, 42, 0.10);
+    color: #0f172a;
+    box-shadow: 0 1px 3px rgba(15,23,42,0.06);
+  }
+
+  .btn-secondary:hover {
+    border-color: rgba(79, 70, 229, 0.25);
+    background: rgba(79, 70, 229, 0.03);
+    box-shadow: 0 2px 8px rgba(79,70,229,0.08);
   }
 
   .btn-ghost {
-    @apply px-4 py-2 hover:bg-white/[0.04] text-text-muted hover:text-text-primary rounded-xl transition-all duration-200 flex items-center justify-center gap-2;
+    @apply px-4 py-2 rounded-xl transition-all duration-200
+           flex items-center justify-center gap-2 text-text-muted;
   }
 
+  .btn-ghost:hover {
+    background: rgba(15, 23, 42, 0.05);
+    color: #0f172a;
+  }
+
+  /* ── Typography ──────────────────────────────────────── */
   .text-gradient {
-    @apply bg-gradient-to-br from-white via-white/90 to-text-muted bg-clip-text text-transparent;
+    background: linear-gradient(135deg, #0f172a 0%, #334155 60%, #64748b 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
   .text-gradient-accent {
-    @apply bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent;
+    background: linear-gradient(135deg, #4f46e5, #06b6d4);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
   .label-caps {
     @apply text-[10px] font-bold uppercase tracking-[0.12em] text-text-muted;
   }
 
+  /* ── Inputs ──────────────────────────────────────────── */
   .input-field {
-    @apply w-full bg-black/40 border border-white/[0.08] rounded-2xl py-3.5 px-5 focus:border-primary/40 focus:ring-1 focus:ring-primary/20 transition-all text-sm font-medium placeholder:text-text-muted/30 outline-none;
+    @apply w-full rounded-2xl py-3.5 px-5 transition-all text-sm font-medium outline-none;
+    background: white;
+    border: 1.5px solid rgba(15, 23, 42, 0.10);
+    color: #0f172a;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04), inset 0 1px 2px rgba(15,23,42,0.02);
   }
 
-  .scroll-thin::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+  .input-field:focus {
+    border-color: rgba(79, 70, 229, 0.45);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.10), 0 1px 2px rgba(15,23,42,0.04);
   }
-  
-  .scroll-thin::-webkit-scrollbar-track {
-    @apply bg-transparent;
-  }
-  
+
+  /* ── Scrollbar ────────────────────────────────────────── */
+  .scroll-thin::-webkit-scrollbar { width: 5px; height: 5px; }
+  .scroll-thin::-webkit-scrollbar-track { background: transparent; }
   .scroll-thin::-webkit-scrollbar-thumb {
-    @apply bg-white/[0.08] rounded-full hover:bg-white/[0.15];
+    background: rgba(15, 23, 42, 0.10);
+    border-radius: 99px;
+  }
+  .scroll-thin::-webkit-scrollbar-thumb:hover {
+    background: rgba(15, 23, 42, 0.18);
   }
 
   .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40
+           focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+
+  /* ── Card elevation ──────────────────────────────────── */
+  .card-elevated {
+    background: white;
+    border: 1px solid rgba(15, 23, 42, 0.07);
+    border-radius: 20px;
+    box-shadow:
+      0 1px 2px rgba(15,23,42,0.04),
+      0 4px 16px rgba(15,23,42,0.05);
+  }
+
+  /* ── Sidebar pill active ─────────────────────────────── */
+  .nav-item-active {
+    background: rgba(79, 70, 229, 0.08);
+    border-color: rgba(79, 70, 229, 0.18) !important;
+    color: #4f46e5 !important;
   }
 }
 
-/* Animations */
-@keyframes pulse-cyan {
+/* ── Animations ───────────────────────────────────────── */
+@keyframes pulse-soft {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  50% { opacity: 0.6; }
+}
+.animate-pulse-soft { animation: pulse-soft 2.5s ease-in-out infinite; }
+
+@keyframes shimmer-light {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 25%, rgba(79,70,229,0.06) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: shimmer-light 2s linear infinite;
 }
 
-.animate-pulse-cyan {
-  animation: pulse-cyan 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes grid-fade {
-  0%, 100% { opacity: 0.03; }
-  50% { opacity: 0.06; }
-}
-
-.animate-grid-fade {
-  animation: grid-fade 4s ease-in-out infinite;
-}
-
-/* Custom code highlighting for SQL console */
-.sql-editor {
-  tab-size: 2;
-  -moz-tab-size: 2;
-}
-
-.sql-editor::selection {
-  background: rgba(124, 58, 237, 0.3);
-}
+/* ── SQL editor ───────────────────────────────────────── */
+.sql-editor { tab-size: 2; -moz-tab-size: 2; }
+.sql-editor::selection { background: rgba(79, 70, 229, 0.2); }

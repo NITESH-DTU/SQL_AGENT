@@ -79,10 +79,10 @@ export default function TableBuilder({ onClose, onSuccess }) {
             </div>
             <div>
               <h2 className="text-xl font-bold tracking-tight text-gradient">Table Builder</h2>
-              <p className="text-[10px] text-text-muted font-medium uppercase tracking-wider mt-0.5">Schema Design Studio</p>
+              <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider mt-0.5">Schema Design Studio</p>
             </div>
           </div>
-          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center hover:bg-white/[0.06] rounded-xl transition-all text-text-muted hover:text-white">
+          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center hover:bg-white/[0.06] rounded-xl transition-all text-gray-400 hover:text-white">
             <X size={20} />
           </button>
         </div>
@@ -119,7 +119,7 @@ export default function TableBuilder({ onClose, onSuccess }) {
                       key={idx} 
                       className="flex items-center gap-3 bg-white/[0.015] p-3 rounded-xl border border-white/[0.05] group hover:border-secondary/15 transition-all duration-200"
                     >
-                      <div className="w-7 h-7 rounded-lg bg-white/[0.03] flex items-center justify-center text-[10px] font-bold text-text-muted/30 shrink-0">{idx + 1}</div>
+                      <div className="w-7 h-7 rounded-lg bg-white/[0.03] flex items-center justify-center text-[10px] font-bold text-gray-400/30 shrink-0">{idx + 1}</div>
                       <input 
                         type="text" 
                         value={col.name}
@@ -157,7 +157,7 @@ export default function TableBuilder({ onClose, onSuccess }) {
                   <Sparkles size={13} /> AI Seeding
                 </h3>
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-medium text-text-muted">Auto-populate</span>
+                  <span className="text-[11px] font-medium text-gray-400">Auto-populate</span>
                   <button 
                     onClick={() => setSeedAI(!seedAI)}
                     className={`w-11 h-6 rounded-full transition-all relative ${seedAI ? 'bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.3)]' : 'bg-white/[0.08]'}`}
@@ -168,7 +168,7 @@ export default function TableBuilder({ onClose, onSuccess }) {
                 {seedAI && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="space-y-3 pt-1">
                     <div className="flex items-center justify-between text-[10px] font-medium">
-                      <span className="text-text-muted">Row Count</span>
+                      <span className="text-gray-400">Row Count</span>
                       <span className="text-amber-400 font-bold text-sm">{seedRows}</span>
                     </div>
                     <input type="range" min="1" max="100" value={seedRows} onChange={e => setSeedRows(e.target.value)} className="w-full h-1 bg-black/30 rounded-lg appearance-none cursor-pointer accent-amber-500" />
@@ -181,7 +181,7 @@ export default function TableBuilder({ onClose, onSuccess }) {
                 <h3 className="text-[10px] font-semibold uppercase tracking-wider flex items-center gap-2 text-secondary">
                   <Code size={13} /> SQL Preview
                 </h3>
-                <pre className="text-[10px] font-mono text-text-muted/60 bg-black/40 p-4 rounded-xl overflow-x-auto whitespace-pre-wrap leading-relaxed border border-white/[0.04] scroll-thin">
+                <pre className="text-[10px] font-mono text-gray-400/60 bg-black/40 p-4 rounded-xl overflow-x-auto whitespace-pre-wrap leading-relaxed border border-white/[0.04] scroll-thin">
                   {generateSQL()}
                 </pre>
               </div>
@@ -191,7 +191,7 @@ export default function TableBuilder({ onClose, onSuccess }) {
 
         {/* Footer */}
         <div className="px-8 py-4 border-t border-white/[0.05] flex justify-end gap-4 bg-black/15">
-          <button onClick={onClose} className="px-6 py-3 text-[10px] font-semibold uppercase tracking-wider text-text-muted hover:text-white transition-all">Cancel</button>
+          <button onClick={onClose} className="px-6 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400 hover:text-white transition-all">Cancel</button>
           <button 
             onClick={handleCreate} 
             disabled={isCreating || !tableName}
@@ -216,7 +216,7 @@ function Checkbox({ label, checked, onChange }) {
       <div className={`w-4.5 h-4.5 rounded-md border-2 flex items-center justify-center transition-all duration-200 ${checked ? 'bg-secondary border-secondary text-white shadow-[0_0_8px_rgba(6,182,212,0.2)]' : 'border-white/[0.1] group-hover:border-white/[0.2]'}`}>
         {checked && <Check size={10} strokeWidth={4} />}
       </div>
-      <span className="text-[8px] font-semibold uppercase tracking-wider text-text-muted/40 group-hover:text-text-muted transition-colors">{label}</span>
+      <span className="text-[8px] font-semibold uppercase tracking-wider text-gray-400/40 group-hover:text-gray-400 transition-colors">{label}</span>
     </button>
   );
 }

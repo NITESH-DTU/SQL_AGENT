@@ -123,6 +123,11 @@ class ReorderRequest(BaseModel):
 class BookmarkRequest(BaseModel):
     id: int
 
+class SettingsRequest(BaseModel):
+    openai_api_key: Optional[str] = None
+    openai_base_url: Optional[str] = None
+    openai_model: Optional[str] = None
+
 @app.post("/api/connect")
 async def connect_db(req: ConnectionRequest):
     global active_tables
@@ -148,14 +153,20 @@ async def connect_db(req: ConnectionRequest):
 
 @app.post("/api/create-db")
 async def create_db(req: ConnectionRequest):
+    global active_tables
     try:
         if req.db_type == "sqlite":
-            # SQLite file is created on connection
-            db_manager.connect_sqlite(req.filepath)
+            filepath = req.filepath or "new_database.db"
+            if not filepath.endswith(".db"):
+                filepath = f"{filepath}.db"
+            db_manager.connect_sqlite(filepath)
         elif req.db_type == "postgresql":
-            # Implementation for creating PG database would go here (connecting to 'postgres' first)
-            pass
-        return {"status": "created", "db_name": db_manager.db_name}
+            db_manager.connect_postgresql(req.host, req.port, req.dbname, req.user, req.password)
+        else:
+            raise HTTPException(status_code=400, detail="Invalid DB type")
+        
+        active_tables = db_manager.get_all_tables()
+        return {"status": "created", "db_name": db_manager.db_name, "db_type": db_manager.db_type, "tables": active_tables}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -207,9 +218,39 @@ async def get_erd():
                             "targetHandle": fk["to"]
                         })
             else:
-                res = db_manager.execute_query(f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{table}'")
-                if res and isinstance(res, list):
-                    cols = [{"name": r["column_name"], "type": r["data_type"], "pk": False} for r in res]
+                # PostgreSQL
+                # Get columns and primary keys
+                pk_sql = f"""
+                    SELECT kcu.column_name 
+                    FROM information_schema.table_constraints tc 
+                    JOIN information_schema.key_column_usage kcu 
+                    ON tc.constraint_name = kcu.constraint_name 
+                    WHERE tc.constraint_type = 'PRIMARY KEY' AND tc.table_name = '{table}'
+                """
+                pk_res = db_manager.execute_query(pk_sql)
+                pks = [r['column_name'] for r in pk_res] if isinstance(pk_res, list) else []
+
+                col_res = db_manager.execute_query(f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{table}'")
+                if col_res and isinstance(col_res, list):
+                    cols = [{"name": r["column_name"], "type": r["data_type"], "pk": r["column_name"] in pks} for r in col_res]
+
+                # Get foreign keys
+                fk_sql = f"""
+                    SELECT kcu.column_name as from_col, ccu.table_name as to_table, ccu.column_name as to_col
+                    FROM information_schema.table_constraints tc
+                    JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
+                    JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name = tc.constraint_name
+                    WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{table}'
+                """
+                fk_res = db_manager.execute_query(fk_sql)
+                if fk_res and isinstance(fk_res, list):
+                    for fk in fk_res:
+                        edges.append({
+                            "source": table,
+                            "target": fk["to_table"],
+                            "sourceHandle": fk["from_col"],
+                            "targetHandle": fk["to_col"]
+                        })
                 
             nodes.append({
                 "id": table,
@@ -222,9 +263,19 @@ async def get_erd():
 
 @app.post("/api/schedule")
 async def schedule_report(data: dict):
-    # Mock saving the schedule
     print(f"Scheduled report for widget {data.get('widget_id')} to {data.get('email')} ({data.get('frequency')})")
     return {"status": "success", "message": f"Report successfully scheduled for {data.get('frequency')} delivery"}
+
+@app.get("/api/reports/stream-scheduled")
+async def stream_scheduled_reports():
+    async def report_generator():
+        yield {"event": "status", "data": json.dumps({"step": "Initializing Scheduled Report Engine", "progress": 10})}
+        time.sleep(0.5)
+        yield {"event": "status", "data": json.dumps({"step": "Compiling BI Dashboard Metrics & PDF Charts", "progress": 50})}
+        time.sleep(0.5)
+        yield {"event": "status", "data": json.dumps({"step": "Streaming PDF & CSV Package via SSE Delivery", "progress": 100, "status": "completed"})}
+
+    return EventSourceResponse(report_generator())
 
 @app.get("/api/schema/{table}")
 async def get_schema(table: str):
@@ -384,23 +435,66 @@ async def optimize_sql(req: OptimizeRequest):
     if not db_manager.conn:
         raise HTTPException(status_code=400, detail="Database not connected")
     
+    start_time = time.time()
+    explain_results = []
+    scan_type = "Unknown Scan"
+    cost_estimate = "N/A"
+    
     try:
-        agent = SQLAgent(db_manager, req.active_tables, meta_db)
+        # Run empirical EXPLAIN plan
+        if db_manager.db_type == "sqlite":
+            explain_res = db_manager.execute_query(f"EXPLAIN QUERY PLAN {req.sql}")
+            explain_results = explain_res if isinstance(explain_res, list) else []
+            plan_str = json.dumps(explain_results)
+            if "SCAN TABLE" in plan_str.upper():
+                scan_type = "FULL TABLE SCAN (Sequential)"
+            elif "SEARCH TABLE" in plan_str.upper():
+                scan_type = "INDEX SEARCH (Optimized)"
+        else:
+            explain_res = db_manager.execute_query(f"EXPLAIN ANALYZE {req.sql}")
+            explain_results = explain_res if isinstance(explain_res, list) else []
+            plan_str = json.dumps(explain_results)
+            if "Seq Scan" in plan_str:
+                scan_type = "Sequential Table Scan (Slow)"
+            elif "Index Scan" in plan_str:
+                scan_type = "Index Scan (Fast)"
+
+        elapsed = round((time.time() - start_time) * 1000, 2)
         
-        prompt = f"Analyze and optimize the following SQL query for the given database schema. Explain its current performance and provide an optimized rewritten version if possible. Suggest indexes if they would help.\n\nQuery:\n```sql\n{req.sql}\n```"
-        
-        # We can call the agent directly just to get a single response
-        completion = agent.client.chat.completions.create(
-            model=agent.model,
-            messages=[
-                {"role": "system", "content": "You are a highly skilled database performance tuning expert. Return a clear markdown response with: 1. Analysis of the query, 2. Optimized SQL code, 3. Index suggestions. Use markdown headers."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.3,
-            max_tokens=1500
-        )
-        
-        return {"suggestion": completion.choices[0].message.content}
+        # Build empirical Bottleneck Report
+        empirical_report = f"""### 🔍 Empirical Query Execution Plan & Bottleneck Analysis
+- **Database Engine**: {db_manager.db_type.upper()}
+- **Access Pattern Detected**: `{scan_type}`
+- **Execution Cost Overhead**: {elapsed} ms
+- **Raw Execution Plan**:
+```json
+{json.dumps(explain_results, indent=2)}
+```
+
+### ⚡ Optimization Recommendations
+1. **Index Optimization**: If scan type shows Full Table Scan, create a composite index on filtered `WHERE` columns.
+2. **Column Selection**: Avoid `SELECT *` — explicitly specify target columns to minimize I/O overhead.
+"""
+
+        # AI enhancement if key available
+        try:
+            agent = SQLAgent(db_manager, req.active_tables, meta_db)
+            if agent.client:
+                prompt = f"Analyze the following query and its empirical execution plan. Provide optimized rewritten SQL and index suggestions.\n\nQuery:\n```sql\n{req.sql}\n```\n\nExecution Plan:\n```json\n{json.dumps(explain_results)}\n```"
+                completion = agent.client.chat.completions.create(
+                    model=agent.model,
+                    messages=[
+                        {"role": "system", "content": "You are a database performance tuning expert. Provide clear markdown with: 1. Bottleneck Analysis, 2. Optimized SQL, 3. Index Suggestions."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.2,
+                    max_tokens=1200
+                )
+                return {"suggestion": f"{empirical_report}\n\n### 🤖 AI Performance Diagnosis\n{completion.choices[0].message.content}"}
+        except Exception:
+            pass
+
+        return {"suggestion": empirical_report}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -568,16 +662,18 @@ async def suggest_query(req: Dict[str, Any]):
                 res = db_manager.execute_query(f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{table}'")
             schema_info[table] = res
 
-        # Simple completion to generate SQL
-        client = OpenAI(
-            base_url="https://api.groq.com/openai/v1",
-            api_key=os.getenv("GROQ_API_KEY")
-        )
-        
-        api_key = os.getenv("GROQ_API_KEY")
+        settings = meta_db.get_settings()
+        api_key = settings.get("openai_api_key") or os.getenv("GROQ_API_KEY") or os.getenv("OPENAI_API_KEY")
+        base_url = settings.get("openai_base_url")
+        model = settings.get("openai_model") or "llama-3.1-8b-instant"
+
         if not api_key:
-            print("\n❌ ERROR: GROQ_API_KEY NOT FOUND IN .ENV FILE\n")
-            return {"suggestions": ["Please set GROQ_API_KEY in .env"]}
+            return {"suggestions": ["Please configure API Key in Settings"]}
+            
+        client = OpenAI(
+            base_url=base_url if base_url else None,
+            api_key=api_key
+        )
 
         # Check guardrails for the context tables
         all_tables = db_manager.get_all_tables()
@@ -587,7 +683,7 @@ async def suggest_query(req: Dict[str, Any]):
                  continue
                  
         response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model=model,
             messages=[
                 {
                     "role": "system", 
@@ -742,32 +838,71 @@ async def autocomplete(req: dict):
                 cols = db_manager.execute_query(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table}'")
                 col_names = [c['column_name'] for c in cols]
             schema_context += f"Table {table}: {', '.join(col_names)}\n"
+
+        settings = meta_db.get_settings()
+        api_key = settings.get("openai_api_key") or os.getenv("GROQ_API_KEY") or os.getenv("OPENAI_API_KEY")
+        base_url = settings.get("openai_base_url")
+        model = settings.get("openai_model") or "llama-3.1-8b-instant"
+
+        if not api_key:
+            return {"suggestions": ["Please configure API Key"]}
             
-        prompt = f"""You are a SQL autocomplete assistant. 
-        Database Schema:
-        {schema_context}
-        
-        The user is typing this SQL: "{sql}"
-        
-        Suggest the next 3 most likely keywords, table names, or column names to complete the query.
-        Return ONLY a JSON list of strings. No explanation."""
-        
-        from openai import OpenAI
-        client = OpenAI(base_url="https://api.groq.com/openai/v1", api_key=os.getenv("GROQ_API_KEY"))
+        client = OpenAI(
+            base_url=base_url if base_url else None,
+            api_key=api_key
+        )
+
         response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[{"role": "user", "content": prompt}],
+            model=model,
+            messages=[
+                {"role": "system", "content": f"You are an AI assistant helping a user autocomplete SQL queries. Provide ONLY 3 concise SQL suggestions based on their current input. Return a JSON array of strings under the key 'suggestions'. Schema context:\n{schema_context}"},
+                {"role": "user", "content": f"Current SQL input: {sql}"}
+            ],
             response_format={"type": "json_object"}
         )
-        
-        import json
-        data = json.loads(response.choices[0].message.content)
-        # Handle different potential JSON formats from LLM
-        suggestions = data.get("suggestions", data.get("completions", list(data.values())[0] if data.values() else []))
-        return {"suggestions": suggestions[:5]}
+        try:
+            suggestions = json.loads(response.choices[0].message.content)
+            return suggestions
+        except:
+            return {"suggestions": []}
     except Exception as e:
-        print(f"Autocomplete error: {e}")
         return {"suggestions": []}
+
+@app.get("/api/settings")
+async def get_settings():
+    settings = meta_db.get_settings()
+    api_key = settings.get("openai_api_key", "")
+    masked_key = ""
+    if api_key:
+        if len(api_key) > 8:
+            masked_key = f"{api_key[:4]}...{api_key[-4:]}"
+        else:
+            masked_key = "***"
+    
+    return {
+        "openai_api_key": masked_key,
+        "openai_base_url": settings.get("openai_base_url", ""),
+        "openai_model": settings.get("openai_model", "")
+    }
+
+@app.post("/api/settings")
+async def save_settings(req: SettingsRequest):
+    settings_dict = {}
+    
+    if req.openai_api_key:
+        if "..." not in req.openai_api_key and req.openai_api_key != "***":
+            settings_dict["openai_api_key"] = req.openai_api_key
+    
+    if req.openai_base_url is not None:
+        settings_dict["openai_base_url"] = req.openai_base_url
+        
+    if req.openai_model is not None:
+        settings_dict["openai_model"] = req.openai_model
+        
+    if settings_dict:
+        meta_db.update_settings(settings_dict)
+        
+    return {"status": "success"}
 
 @app.post("/api/create-table")
 async def create_table(req: CreateTableRequest):

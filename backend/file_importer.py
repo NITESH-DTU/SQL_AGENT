@@ -12,10 +12,10 @@ class FileImporter:
         ext = os.path.splitext(file_path)[1].lower()
         try:
             if ext == '.csv':
-                df = pd.read_csv(file_path, nrows=5)
+                df = pd.read_csv(file_path, nrows=5).fillna("")
                 return {"type": "table", "data": df.to_dict(orient='records'), "columns": df.columns.tolist()}
             elif ext in ['.xlsx', '.xls']:
-                df = pd.read_excel(file_path, nrows=5)
+                df = pd.read_excel(file_path, nrows=5).fillna("")
                 return {"type": "table", "data": df.to_dict(orient='records'), "columns": df.columns.tolist()}
             elif ext == '.pdf':
                 with pdfplumber.open(file_path) as pdf:
@@ -23,7 +23,7 @@ class FileImporter:
                     text = first_page.extract_text()
                     tables = first_page.extract_tables()
                     if tables:
-                        df = pd.DataFrame(tables[0][1:], columns=tables[0][0])
+                        df = pd.DataFrame(tables[0][1:], columns=tables[0][0]).fillna("")
                         return {"type": "table", "data": df.head(5).to_dict(orient='records'), "columns": df.columns.tolist()}
                     return {"type": "text", "preview": text[:1000] if text else "No text found"}
             elif ext == '.docx':
@@ -34,7 +34,7 @@ class FileImporter:
                     data = []
                     for row in table.rows[1:6]:
                         data.append([cell.text for cell in row.cells])
-                    df = pd.DataFrame(data, columns=keys)
+                    df = pd.DataFrame(data, columns=keys).fillna("")
                     return {"type": "table", "data": df.to_dict(orient='records'), "columns": df.columns.tolist()}
                 text = "\n".join([p.text for p in doc.paragraphs[:20]])
                 return {"type": "text", "preview": text[:1000]}
@@ -102,7 +102,7 @@ class FileImporter:
                 df.columns = new_cols
                 
                 # Replace NaN with None for SQL compatibility
-                df = df.where(pd.notnull(df), None)
+                df = df.astype(object).where(pd.notna(df), None)
                 
                 if mode == "create_new":
                     cols_sql = []

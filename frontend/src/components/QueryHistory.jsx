@@ -55,13 +55,13 @@ export default function QueryHistory({ isOpen, onClose, onReRun }) {
               <Clock size={20} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-text-primary tracking-tight">Query History</h2>
-              <p className="text-xs text-text-muted">Track and bookmark your SQL operations</p>
+              <h2 className="text-lg font-bold text-white tracking-tight">Query History</h2>
+              <p className="text-xs text-gray-400">Track and bookmark your SQL operations</p>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="p-2 hover:bg-white/5 rounded-xl text-text-muted transition-colors"
+            className="p-2 hover:bg-white/5 rounded-xl text-gray-400 transition-colors"
           >
             <X size={20} />
           </button>
@@ -72,31 +72,31 @@ export default function QueryHistory({ isOpen, onClose, onReRun }) {
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                 <input 
                   type="text"
                   placeholder="Search queries..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-white/[0.02] border border-white/[0.08] rounded-xl text-[13px] text-text-primary placeholder:text-text-muted/40 focus:border-primary/40 focus:bg-white/[0.04] transition-all outline-none"
+                  className="w-full pl-10 pr-4 py-2 bg-white/[0.02] border border-white/[0.08] rounded-xl text-[13px] text-white placeholder:text-gray-400/40 focus:border-primary/40 focus:bg-white/[0.04] transition-all outline-none"
                 />
               </div>
               <div className="relative">
                  <select 
                     value={filter} 
                     onChange={e => setFilter(e.target.value)}
-                    className="py-2 pl-3 pr-8 bg-white/[0.02] border border-white/[0.08] rounded-xl text-[13px] text-text-primary focus:border-primary/40 outline-none appearance-none font-medium cursor-pointer"
+                    className="py-2 pl-3 pr-8 bg-white/[0.02] border border-white/[0.08] rounded-xl text-[13px] text-white focus:border-primary/40 outline-none appearance-none font-medium cursor-pointer"
                  >
                     <option value="all" className="bg-card">All Queries</option>
                     <option value="bookmarked" className="bg-card">Bookmarked</option>
                     <option value="agent" className="bg-card">Agent</option>
                     <option value="manual" className="bg-card">Manual</option>
                  </select>
-                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" size={14} />
+                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
               </div>
             </div>
             
-            <div className="flex items-center justify-between px-1 text-[11px] font-medium text-text-muted">
+            <div className="flex items-center justify-between px-1 text-[11px] font-medium text-gray-400">
               <span>{filteredHistory.length} result{filteredHistory.length !== 1 ? 's' : ''} found</span>
               <button 
                 onClick={clearHistory}
@@ -114,14 +114,14 @@ export default function QueryHistory({ isOpen, onClose, onReRun }) {
             <div className="h-full flex items-center justify-center">
               <div className="flex flex-col items-center gap-3">
                 <div className="w-10 h-10 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                <span className="text-sm text-text-muted">Loading history...</span>
+                <span className="text-sm text-gray-400">Loading history...</span>
               </div>
             </div>
           ) : filteredHistory.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center opacity-40 grayscale text-center p-8">
-              <Clock size={48} className="mb-4 text-text-muted" />
-              <h3 className="text-lg font-semibold text-text-primary">No history found</h3>
-              <p className="text-sm text-text-muted max-w-[200px]">Run some queries to see them appear here.</p>
+              <Clock size={48} className="mb-4 text-gray-400" />
+              <h3 className="text-lg font-semibold text-white">No history found</h3>
+              <p className="text-sm text-gray-400 max-w-[200px]">Run some queries to see them appear here.</p>
             </div>
           ) : (
             filteredHistory.map((item) => (
@@ -131,7 +131,7 @@ export default function QueryHistory({ isOpen, onClose, onReRun }) {
               >
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <div className="flex-1 min-w-0">
-                    <pre className="text-[11px] font-mono text-text-primary bg-black/30 p-2.5 rounded-lg border border-white/[0.04] overflow-x-auto whitespace-pre-wrap max-h-[120px] scroll-thin leading-relaxed">
+                    <pre className="text-[11px] font-mono text-white bg-black/30 p-2.5 rounded-lg border border-white/[0.04] overflow-x-auto whitespace-pre-wrap max-h-[120px] scroll-thin leading-relaxed">
                       {item.sql_text}
                     </pre>
                   </div>
@@ -139,35 +139,35 @@ export default function QueryHistory({ isOpen, onClose, onReRun }) {
                     <button 
                       onClick={() => toggleBookmark(item.id)}
                       className={`p-2 rounded-lg transition-all ${
-                        item.bookmarked ? 'bg-amber-500/10 text-amber-500' : 'hover:bg-white/5 text-text-muted'
+                        item.bookmarked ? 'bg-amber-500/10 text-amber-500' : 'hover:bg-white/5 text-gray-400'
                       }`}
                     >
                       {item.bookmarked ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
                     </button>
                     <button 
                       onClick={() => onReRun(item.sql_text)}
-                      className="p-2 hover:bg-success/10 text-text-muted hover:text-success rounded-lg transition-all"
+                      className="p-2 hover:bg-success/10 text-gray-400 hover:text-success rounded-lg transition-all"
                       title="Re-run query"
                     >
                       <Play size={16} />
                     </button>
                     <button 
                       onClick={() => handleExport(item.sql_text, 'csv')}
-                      className="p-2 hover:bg-blue-500/10 text-text-muted hover:text-blue-500 rounded-lg transition-all"
+                      className="p-2 hover:bg-blue-500/10 text-gray-400 hover:text-blue-500 rounded-lg transition-all"
                       title="Export CSV"
                     >
                       <Download size={16} />
                     </button>
                     <button 
                       onClick={() => deleteHistoryItem(item.id)}
-                      className="p-2 hover:bg-danger/10 text-text-muted hover:text-danger rounded-lg transition-all"
+                      className="p-2 hover:bg-danger/10 text-gray-400 hover:text-danger rounded-lg transition-all"
                     >
                       <Trash2 size={16} />
                     </button>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 text-[10px] text-text-muted font-medium">
+                <div className="flex items-center gap-4 text-[10px] text-gray-400 font-medium">
                   <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.04]">
                     <Database size={10} /> {item.db_name || 'N/A'}
                   </div>
@@ -180,9 +180,9 @@ export default function QueryHistory({ isOpen, onClose, onReRun }) {
                     <Calendar size={10} /> {new Date(item.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                   </div>
                   <div className="flex items-center gap-1.5 ml-auto">
-                    <span className="font-bold text-text-primary/60">{item.result_count}</span> rows
-                    <span className="text-text-muted/30">•</span>
-                    <span className="text-text-primary/60">{item.execution_time}</span>
+                    <span className="font-bold text-white/60">{item.result_count}</span> rows
+                    <span className="text-gray-400/30">•</span>
+                    <span className="text-white/60">{item.execution_time}</span>
                   </div>
                 </div>
               </div>

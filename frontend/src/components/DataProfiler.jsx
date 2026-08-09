@@ -61,8 +61,8 @@ export default function DataProfiler({ isOpen, onClose, activeTables }) {
               <Activity className="text-amber-500" size={22} />
             </div>
             <div>
-              <h2 className="text-xl font-bold tracking-tight text-text-primary">Data Quality Profiler</h2>
-              <p className="text-[10px] font-medium text-text-muted uppercase tracking-wider mt-0.5">Automated Health Check</p>
+              <h2 className="text-xl font-bold tracking-tight text-white">Data Quality Profiler</h2>
+              <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mt-0.5">Automated Health Check</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl transition-colors">
@@ -74,7 +74,7 @@ export default function DataProfiler({ isOpen, onClose, activeTables }) {
           {/* Sidebar for Tables */}
           <div className="w-64 border-r border-white/[0.05] bg-black/20 flex flex-col">
             <div className="p-4 border-b border-white/[0.05]">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Select Table</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Select Table</span>
             </div>
             <div className="flex-1 overflow-y-auto scroll-thin p-3 space-y-1">
               {activeTables.map(t => (
@@ -82,7 +82,7 @@ export default function DataProfiler({ isOpen, onClose, activeTables }) {
                   key={t}
                   onClick={() => setSelectedTable(t)}
                   className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                    selectedTable === t ? 'bg-amber-500/15 text-amber-400' : 'hover:bg-white/5 text-text-muted'
+                    selectedTable === t ? 'bg-amber-500/15 text-amber-400' : 'hover:bg-white/5 text-gray-400'
                   }`}
                 >
                   <Database size={14} />
@@ -90,7 +90,7 @@ export default function DataProfiler({ isOpen, onClose, activeTables }) {
                 </button>
               ))}
               {activeTables.length === 0 && (
-                <div className="text-center p-4 text-text-muted/50 text-xs">No active tables</div>
+                <div className="text-center p-4 text-gray-400/50 text-xs">No active tables</div>
               )}
             </div>
           </div>
@@ -100,7 +100,7 @@ export default function DataProfiler({ isOpen, onClose, activeTables }) {
             {loading ? (
               <div className="h-full flex flex-col items-center justify-center gap-4">
                 <Loader2 size={32} className="animate-spin text-amber-500" />
-                <span className="text-sm font-medium text-text-muted">Profiling Data...</span>
+                <span className="text-sm font-medium text-gray-400">Profiling Data...</span>
               </div>
             ) : error ? (
               <div className="h-full flex flex-col items-center justify-center gap-2 text-danger">
@@ -111,32 +111,32 @@ export default function DataProfiler({ isOpen, onClose, activeTables }) {
               <div className="p-8">
                 <div className="mb-8 p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex items-center justify-between">
                   <div>
-                    <h3 className="text-2xl font-bold text-text-primary">{profile.table}</h3>
-                    <p className="text-text-muted mt-1">{profile.total_rows.toLocaleString()} Total Rows</p>
+                    <h3 className="text-2xl font-bold text-white">{profile.table}</h3>
+                    <p className="text-gray-400 mt-1">{profile.total_rows.toLocaleString()} Total Rows</p>
                   </div>
                   <div className="flex items-center gap-6">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-text-primary">{profile.profile.length}</div>
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Columns</div>
+                      <div className="text-2xl font-bold text-white">{profile.profile.length}</div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Columns</div>
                     </div>
                     <div className="w-px h-10 bg-white/[0.1]" />
                     <div className="text-center">
                       <div className="text-2xl font-bold text-danger">
                         {profile.profile.filter(c => c.issues.length > 0).length}
                       </div>
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Flags</div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Flags</div>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <h4 className="text-sm font-bold text-text-primary uppercase tracking-wider mb-4">Column Analysis</h4>
+                  <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Column Analysis</h4>
                   {profile.profile.map((col, i) => (
                     <div key={i} className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.1] transition-colors">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
-                          <span className="font-mono text-base font-bold text-text-primary">{col.name}</span>
-                          <span className="px-2 py-0.5 rounded bg-white/[0.05] text-[10px] font-mono text-text-muted">{col.type}</span>
+                          <span className="font-mono text-base font-bold text-white">{col.name}</span>
+                          <span className="px-2 py-0.5 rounded bg-white/[0.05] text-[10px] font-mono text-gray-400">{col.type}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           {col.issues.length === 0 ? (
@@ -155,10 +155,10 @@ export default function DataProfiler({ isOpen, onClose, activeTables }) {
                       
                       <div className="mt-5 grid grid-cols-2 gap-4">
                         <div className="p-3 rounded-xl bg-black/20 border border-white/[0.03]">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">Null Values</div>
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Null Values</div>
                           <div className="flex items-end gap-2">
-                            <span className="text-lg font-bold text-text-primary">{col.nulls.toLocaleString()}</span>
-                            <span className="text-sm text-text-muted font-medium mb-0.5">({col.null_pct}%)</span>
+                            <span className="text-lg font-bold text-white">{col.nulls.toLocaleString()}</span>
+                            <span className="text-sm text-gray-400 font-medium mb-0.5">({col.null_pct}%)</span>
                           </div>
                           {col.null_pct > 0 && (
                             <div className="w-full h-1 bg-white/[0.05] rounded-full mt-2 overflow-hidden">
@@ -167,10 +167,10 @@ export default function DataProfiler({ isOpen, onClose, activeTables }) {
                           )}
                         </div>
                         <div className="p-3 rounded-xl bg-black/20 border border-white/[0.03]">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">Unique Values</div>
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Unique Values</div>
                           <div className="flex items-end gap-2">
-                            <span className="text-lg font-bold text-text-primary">{col.unique.toLocaleString()}</span>
-                            <span className="text-sm text-text-muted font-medium mb-0.5">({((col.unique / profile.total_rows) * 100).toFixed(1)}%)</span>
+                            <span className="text-lg font-bold text-white">{col.unique.toLocaleString()}</span>
+                            <span className="text-sm text-gray-400 font-medium mb-0.5">({((col.unique / profile.total_rows) * 100).toFixed(1)}%)</span>
                           </div>
                         </div>
                       </div>
@@ -179,7 +179,7 @@ export default function DataProfiler({ isOpen, onClose, activeTables }) {
                 </div>
               </div>
             ) : (
-              <div className="h-full flex items-center justify-center text-text-muted/50">
+              <div className="h-full flex items-center justify-center text-gray-400/50">
                 Select a table to view its profile
               </div>
             )}

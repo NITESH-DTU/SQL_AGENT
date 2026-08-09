@@ -15,6 +15,8 @@ import WidgetModal from './components/WidgetModal';
 import DataProfiler from './components/DataProfiler';
 import GlossaryManager from './components/GlossaryManager';
 import ERDVisualizer from './components/ERDVisualizer';
+import AuditLogModal from './components/AuditLogModal';
+import SettingsModal from './components/SettingsModal';
 import useDashboard from './hooks/useDashboard';
 import { useDatabase } from './hooks/useDatabase';
 import { useAgent } from './hooks/useAgent';
@@ -50,10 +52,12 @@ function App() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isDataProfilerOpen, setIsDataProfilerOpen] = useState(false);
   const [isGlossaryManagerOpen, setIsGlossaryManagerOpen] = useState(false);
+  const [isAuditLogOpen, setIsAuditLogOpen] = useState(false);
   const [isERDOpen, setIsERDOpen] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pinData, setPinData] = useState(null);
   const [browsingTable, setBrowsingTable] = useState(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handlePin = (data) => {
     setPinData(data);
@@ -67,19 +71,18 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen w-full bg-background overflow-hidden text-text-primary selection:bg-primary/30 font-sans">
+    <div className="flex h-screen w-full bg-background overflow-hidden text-text-primary font-sans">
       <Toaster 
         toastOptions={{
           style: {
-            background: '#13131f',
-            color: '#f1f5f9',
-            border: '1px solid rgba(124,58,237,0.2)',
+            background: '#ffffff',
+            color: '#0f172a',
+            border: '1px solid rgba(79,70,229,0.15)',
             borderRadius: '14px',
             fontSize: '12px',
             fontWeight: '600',
             letterSpacing: '0.01em',
-            backdropFilter: 'blur(16px)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            boxShadow: '0 4px 24px rgba(15,23,42,0.10)',
           },
         }}
       />
@@ -100,8 +103,10 @@ function App() {
         onOpenDashboard={() => setIsDashboardOpen(true)}
         onOpenDataProfiler={() => setIsDataProfilerOpen(true)}
         onOpenGlossary={() => setIsGlossaryManagerOpen(true)}
+        onOpenAuditLog={() => setIsAuditLogOpen(true)}
         onOpenERD={() => setIsERDOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
       <main className="flex-1 flex flex-col relative min-w-0">
@@ -216,6 +221,15 @@ function App() {
       </AnimatePresence>
 
       <AnimatePresence>
+        {isAuditLogOpen && (
+          <AuditLogModal 
+            isOpen={isAuditLogOpen} 
+            onClose={() => setIsAuditLogOpen(false)} 
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {isERDOpen && (
           <ERDVisualizer 
             isOpen={isERDOpen} 
@@ -230,6 +244,15 @@ function App() {
             table={browsingTable} 
             onClose={() => setBrowsingTable(null)} 
             activeTables={activeTables}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isSettingsOpen && (
+          <SettingsModal 
+            isOpen={isSettingsOpen} 
+            onClose={() => setIsSettingsOpen(false)} 
           />
         )}
       </AnimatePresence>

@@ -21,10 +21,18 @@ export function useDatabase() {
 
   const connect = async (config) => {
     try {
+      // If onConnect already handled the API call (DBModal), accept pre-fetched data
+      if (config?.status === 'created' || config?.status === 'connected') {
+        setDb({ name: config.db_name, type: config.db_type });
+        const tableList = config.tables || [];
+        setTables(tableList);
+        setActiveTables(tableList);
+        return true;
+      }
       const res = await axios.post(`${API_BASE}/connect`, config);
       setDb({ name: res.data.db_name, type: res.data.db_type });
       setTables(res.data.tables);
-      setActiveTables(res.data.tables); // Auto-activate all initially or however you prefer
+      setActiveTables(res.data.tables);
       toast.success(`Connected to ${res.data.db_name}`);
       return true;
     } catch (err) {

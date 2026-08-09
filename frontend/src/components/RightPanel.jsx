@@ -32,7 +32,7 @@ export default function RightPanel({ isOpen, onToggle, activeTables }) {
     <div className={`relative flex transition-all duration-400 ease-in-out h-full ${isOpen ? 'w-[300px]' : 'w-0'}`}>
       <button 
         onClick={onToggle}
-        className="absolute -left-9 top-1/2 -translate-y-1/2 w-7 h-16 rounded-l-xl bg-surface/70 backdrop-blur-xl border border-r-0 border-white/[0.06] flex items-center justify-center text-text-muted hover:text-primary z-30 hover:bg-surface transition-all shadow-[-8px_0_16px_rgba(0,0,0,0.2)]"
+        className="absolute -left-9 top-1/2 -translate-y-1/2 w-7 h-16 rounded-l-xl bg-surface/70 backdrop-blur-xl border border-r-0 border-white/[0.06] flex items-center justify-center text-gray-400 hover:text-primary z-30 hover:bg-surface transition-all shadow-[-8px_0_16px_rgba(0,0,0,0.2)]"
       >
         {isOpen ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
       </button>
@@ -55,11 +55,11 @@ export default function RightPanel({ isOpen, onToggle, activeTables }) {
           <div className="px-5 py-3 border-b border-white/[0.04] bg-black/10 flex items-center gap-4">
             <div className="flex items-center gap-1.5">
               <Table size={11} className="text-primary/50" />
-              <span className="text-[10px] font-medium text-text-muted/60">{activeTables.length} table{activeTables.length !== 1 ? 's' : ''}</span>
+              <span className="text-[10px] font-medium text-gray-400/60">{activeTables.length} table{activeTables.length !== 1 ? 's' : ''}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Columns size={11} className="text-secondary/50" />
-              <span className="text-[10px] font-medium text-text-muted/60">{totalColumns} column{totalColumns !== 1 ? 's' : ''}</span>
+              <span className="text-[10px] font-medium text-gray-400/60">{totalColumns} column{totalColumns !== 1 ? 's' : ''}</span>
             </div>
           </div>
         )}
@@ -98,7 +98,7 @@ function SchemaAccordion({ table, schema, delay }) {
     if (t.includes('TEXT') || t.includes('CHAR') || t.includes('VARCHAR')) return 'text-emerald-400 bg-emerald-500/8';
     if (t.includes('BOOL')) return 'text-amber-400 bg-amber-500/8';
     if (t.includes('TIME') || t.includes('DATE')) return 'text-purple-400 bg-purple-500/8';
-    return 'text-text-muted bg-white/[0.04]';
+    return 'text-gray-400 bg-white/[0.04]';
   };
 
   return (
@@ -117,9 +117,9 @@ function SchemaAccordion({ table, schema, delay }) {
             <Table size={13} className="text-primary" />
           </div>
           <span className="text-[13px] font-semibold tracking-tight truncate">{table}</span>
-          {schema && <span className="text-[9px] font-mono text-text-muted/30">{schema.length} col{schema.length !== 1 ? 's' : ''}</span>}
+          {schema && <span className="text-[9px] font-mono text-gray-400/30">{schema.length} col{schema.length !== 1 ? 's' : ''}</span>}
         </div>
-        <ChevronDown size={14} className={`text-text-muted/30 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+        <ChevronDown size={14} className={`text-gray-400/30 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
       </button>
       <AnimatePresence>
         {isExpanded && (
@@ -139,14 +139,14 @@ function SchemaAccordion({ table, schema, delay }) {
                     ) : (
                       <div className="w-[10px] shrink-0" />
                     )}
-                    <span className="font-mono text-text-primary/80 font-medium">{col.name || col.column_name}</span>
+                    <span className="font-mono text-white/80 font-medium">{col.name || col.column_name}</span>
                   </div>
                   <span className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded ${getTypeColor(col.type || col.data_type)}`}>
                     {col.type || col.data_type}
                   </span>
                 </div>
               )) : (
-                <div className="text-[10px] text-text-muted/30 italic animate-pulse">Loading schema...</div>
+                <div className="text-[10px] text-gray-400/30 italic animate-pulse">Loading schema...</div>
               )}
             </div>
           </motion.div>

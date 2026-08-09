@@ -16,35 +16,65 @@ class SQLAgent:
         self.meta_db = meta_db
         self.tools_executor = AgentTools(db_manager, active_tables, meta_db)
         
-        # Use OpenAI SDK pointed at Groq
-        api_key = os.getenv("GROQ_API_KEY")
-        if not api_key:
-            print("\n❌ ERROR: GROQ_API_KEY NOT FOUND IN .ENV FILE\n")
-            raise ValueError("GROQ_API_KEY is not set. Please check your .env file in the backend directory.")
-            
-        self.client = OpenAI(
-            base_url="https://api.groq.com/openai/v1",
-            api_key=api_key
-        )
-        self.model = "llama-3.1-8b-instant"
+        # Multi-provider setup: Groq -> OpenAI -> Fallback
+        self.provider = None
+        self.client = None
+        self.model = None
+
+        settings = self.meta_db.get_settings()
+        api_key = settings.get("openai_api_key")
+        base_url = settings.get("openai_base_url")
+        model = settings.get("openai_model")
+
+        groq_key = os.getenv("GROQ_API_KEY")
+        openai_key = os.getenv("OPENAI_API_KEY")
+
+        if api_key:
+            self.provider = "custom"
+            self.client = OpenAI(
+                base_url=base_url if base_url else None,
+                api_key=api_key
+            )
+            self.model = model or "gpt-4o-mini"
+        elif groq_key and groq_key != "your_groq_api_key_goes_here":
+            self.provider = "groq"
+            self.client = OpenAI(
+                base_url="https://api.groq.com/openai/v1",
+                api_key=groq_key
+            )
+            self.model = "llama-3.1-8b-instant"
+        elif openai_key and openai_key != "your_openai_api_key_goes_here":
+            self.provider = "openai"
+            self.client = OpenAI(api_key=openai_key)
+            self.model = "gpt-4o-mini"
+        else:
+            self.provider = "local_fallback"
+            print("ℹ️ Operating in Local Fallback mode (No GROQ_API_KEY or OPENAI_API_KEY set).")
 
     def _get_system_prompt(self):
+        glossary_context = ""
+        try:
+            glossary_path = os.path.join(os.path.dirname(__file__), "business_glossary.json")
+            if os.path.exists(glossary_path):
+                with open(glossary_path, "r", encoding="utf-8") as f:
+                    glossary_data = json.load(f)
+                    glossary_context = f"\nOFFICIAL BUSINESS GLOSSARY & SEMANTIC DEFINITIONS:\n{json.dumps(glossary_data, indent=2)}\n"
+        except Exception:
+            pass
+
         return f"""You are an autonomous SQL Data Engineer.
 Active tables: {self.active_tables}
 Database type: {self.db_manager.db_type}
 Database name: {self.db_manager.db_name}
-
+{glossary_context}
 You do not ask for permission — you act, analyze, and continue until the task is complete.
 
-BUSINESS GLOSSARY & SEMANTIC LAYER:
-- If the user asks for a business metric (like 'revenue', 'churn', 'LTV') or a segment (like 'active user'), you MUST call `get_business_definitions()` first.
-- NEVER guess the formula for a business term. Always use the definition provided in the Glossary.
-- Use the definitions to write more accurate SQL and provide better business context.
+BUSINESS GLOSSARY RULES:
+- Use the provided semantic definitions above whenever writing SQL or analyzing metrics (e.g. revenue, churn, active_user).
 
 CRITICAL TOOL CALLING RULES:
 - Use ONLY the provided tool functions via the standard tool calling interface.
 - NEVER output XML-style function calls like <function=name{{}}></function>.
-- NEVER write function calls as plain text. Always use the structured tool calling format.
 - Call ONE tool at a time.
 
 Output Structure Rules:
@@ -53,9 +83,7 @@ Output Structure Rules:
    - ### 📊 Analysis Overview
    - ### 🛠️ Actions Taken
    - ### 📝 Results Summary
-3. **If** you are exporting data, provide a download link or confirmation.
-4. **Be Concise**: Do not repeat the user's question. Focus on the data insights.
-5. **Self-Correction**: If a tool fails or a guardrail blocks you, analyze why and try a different approach (e.g., query a different table, check schema again)."""
+3. **Be Concise**: Focus on data insights."""
 
     def _log_session(self, action, content):
         with open("agent_sessions.log", "a", encoding="utf-8") as f:
@@ -79,6 +107,18 @@ Output Structure Rules:
             # Send status update
             yield {"type": "status", "content": f"Agent is thinking...", "iteration": iterations + 1}
             
+            if self.provider == "local_fallback" or not self.client:
+                # Local fallback query processor
+                target_table = self.active_tables[0] if self.active_tables else "demo_sales"
+                sql = f"SELECT * FROM \"{target_table}\" LIMIT 10"
+                yield {"type": "tool_call", "tool": "execute_query", "args": {"sql": sql}}
+                res = self.tools_executor.invoke_tool("execute_query", {"sql": sql})
+                yield {"type": "tool_result", "tool": "execute_query", "args": {"sql": sql}, "result": json.dumps(res.get("result", []), default=str), "sql": sql}
+                
+                answer = f"### 📊 Analysis Overview\nQuery analyzed using Local Rule Fallback.\n\n### 🛠️ Actions Taken\nExecuted SQL query on table `{target_table}`.\n\n### 📝 Results Summary\nRetrieved {len(res.get('result', []))} records."
+                yield {"type": "final_answer", "message": answer}
+                break
+
             try:
                 response = self.client.chat.completions.create(
                     model=self.model,
@@ -102,8 +142,14 @@ Output Structure Rules:
                     yield {"type": "status", "content": f"Retrying after format error (attempt {retry_count}/{max_retries})..."}
                     iterations += 1
                     continue
-                yield {"type": "error", "message": f"LLM Error: {error_str}"}
-                self._log_session("ERROR", error_str[:500])
+                
+                # Fallback to executing query locally if LLM provider fails
+                target_table = self.active_tables[0] if self.active_tables else "demo_sales"
+                sql = f"SELECT * FROM \"{target_table}\" LIMIT 10"
+                yield {"type": "tool_call", "tool": "execute_query", "args": {"sql": sql}}
+                res = self.tools_executor.invoke_tool("execute_query", {"sql": sql})
+                yield {"type": "tool_result", "tool": "execute_query", "args": {"sql": sql}, "result": json.dumps(res.get("result", []), default=str), "sql": sql}
+                yield {"type": "final_answer", "message": f"### 📊 Analysis Overview\nExecuted fallback query due to API error ({error_str[:100]}).\n\n### 📝 Results Summary\nFetched dataset from table `{target_table}`."}
                 break
             
             msg = response.choices[0].message

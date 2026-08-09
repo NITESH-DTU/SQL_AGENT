@@ -50,11 +50,14 @@ def check_sql_guardrails(sql, active_tables, all_tables):
                     return {"blocked": True, "error": msg}
 
     except Exception as e:
-        # If sqlglot fails to parse, it might be an invalid query or a dialect it doesn't know
-        # For security, we block it if it's suspicious, but here we just pass it to the DB 
-        # which will throw its own syntax error if it's actually bad.
-        # Alternatively, we could block it to be safe.
-        pass
+        # Regex fallback for safety
+        import re
+        sql_upper = sql.upper()
+        forbidden_regex = r'\b(DROP|TRUNCATE|DELETE|ALTER)\b'
+        if re.search(forbidden_regex, sql_upper):
+            msg = "Destructive operation detected by Security Guardrails."
+            log_violation("Blocked Keyword (Regex Fallback)", sql)
+            return {"blocked": True, "error": msg}
 
     return {"blocked": False}
 

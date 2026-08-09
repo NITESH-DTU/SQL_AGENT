@@ -1,0 +1,32 @@
+name,city,product,quantity,amount
+Ananya,Pune,Keyboard,3,4500
+Ananya,Pune,Monitor,3,36000
+Meera,Pune,Headphones,1,2500
+Meera,Pune,Mouse,5,4000
+Meera,Mumbai,Mouse,4,3200
+Meera,Mumbai,SSD 1TB,2,14000
+Priya,Chennai,SSD 1TB,5,35000
+Rahul,Chennai,Laptop,2,130000
+Nisha,Bengaluru,Keyboard,4,6000
+Aarav,Chennai,Monitor,4,48000
+Aarav,Chennai,Printer,3,27000
+Nisha,Pune,Mouse,4,3200
+Nisha,Pune,SSD 1TB,5,35000
+Aditya,Pune,Monitor,4,48000
+Aditya,Pune,Printer,3,27000
+Rohan,Delhi,Mouse,1,800
+Karan,Pune,Laptop,5,325000
+Karan,Pune,SSD 1TB,5,35000
+Aditya,Chennai,Keyboard,1,1500
+Aditya,Chennai,Printer,1,9000
+Aditya,Chennai,Printer,3,27000
+Rahul,Mumbai,Keyboard,1,1500
+Rahul,Mumbai,Monitor,3,36000
+Rahul,Mumbai,Mouse,4,3200
+Karan,Chennai,Printer,5,45000
+Vivaan,Delhi,Headphones,3,7500
+Karan,Hyderabad,Headphones,1,2500
+Karan,Hyderabad,Monitor,1,12000
+Karan,Hyderabad,Monitor,5,60000
+Aarav,Bengaluru,SSD 1TB,5,35000
+Meera,Mumbai,Mouse,5,4000

@@ -53,16 +53,16 @@ export default function ScheduleModal({ isOpen, onClose, widget }) {
               <Send size={18} />
             </div>
             <div>
-              <h3 className="font-bold text-text-primary">Schedule Report</h3>
-              <p className="text-[10px] text-text-muted uppercase tracking-wider">{widget.title}</p>
+              <h3 className="font-bold text-white">Schedule Report</h3>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wider">{widget.title}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-lg text-text-muted transition-colors"><X size={18} /></button>
+          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-lg text-gray-400 transition-colors"><X size={18} /></button>
         </div>
 
         <div className="p-6 space-y-5">
           <div>
-            <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2 flex items-center gap-2">
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
               <Mail size={12} /> Delivery Email
             </label>
             <input 
@@ -76,7 +76,7 @@ export default function ScheduleModal({ isOpen, onClose, widget }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2 flex items-center gap-2">
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
                 <Calendar size={12} /> Frequency
               </label>
               <select 
@@ -90,7 +90,7 @@ export default function ScheduleModal({ isOpen, onClose, widget }) {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2 flex items-center gap-2">
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
                 <Clock size={12} /> Time
               </label>
               <input 
@@ -104,14 +104,14 @@ export default function ScheduleModal({ isOpen, onClose, widget }) {
 
           <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 mt-4">
             <h4 className="text-xs font-bold text-indigo-400 mb-1 flex items-center gap-2"><CheckCircle2 size={12} /> Automated Delivery</h4>
-            <p className="text-xs text-text-muted leading-relaxed">
+            <p className="text-xs text-gray-400 leading-relaxed">
               This widget's data and visual chart will be exported as a PDF and sent to the specified email {frequency} at {time}.
             </p>
           </div>
         </div>
 
         <div className="px-6 py-4 border-t border-white/[0.06] bg-black/40 flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 hover:bg-white/5 rounded-xl text-xs font-bold text-text-muted">Cancel</button>
+          <button onClick={onClose} className="px-4 py-2 hover:bg-white/5 rounded-xl text-xs font-bold text-gray-400">Cancel</button>
           <button 
             onClick={handleSchedule}
             disabled={loading}

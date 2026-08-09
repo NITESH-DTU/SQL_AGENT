@@ -132,18 +132,18 @@ export default function GlossaryManager({ isOpen, onClose }) {
               <BookOpen className="text-emerald-500" size={22} />
             </div>
             <div>
-              <h2 className="text-xl font-bold tracking-tight text-text-primary">Semantic Layer</h2>
-              <p className="text-[10px] font-medium text-text-muted uppercase tracking-wider mt-0.5">Business Glossary & Logic</p>
+              <h2 className="text-xl font-bold tracking-tight text-white">Semantic Layer</h2>
+              <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mt-0.5">Business Glossary & Logic</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl transition-colors text-text-muted hover:text-white">
+          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl transition-colors text-gray-400 hover:text-white">
             <X size={20} />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto scroll-thin p-8">
           {loading ? (
-            <div className="flex items-center justify-center h-full text-text-muted animate-pulse">Loading...</div>
+            <div className="flex items-center justify-center h-full text-gray-400 animate-pulse">Loading...</div>
           ) : (
             <div className="space-y-8">
               {Object.keys(glossary).map(category => (
@@ -171,7 +171,7 @@ export default function GlossaryManager({ isOpen, onClose }) {
                       <div key={term} className="p-4 rounded-xl bg-black/20 border border-white/[0.03] group">
                         <div className="flex items-start justify-between gap-4">
                           <div className="w-1/3 shrink-0">
-                            <span className="text-sm font-bold text-text-primary">{term}</span>
+                            <span className="text-sm font-bold text-white">{term}</span>
                           </div>
                           
                           <div className="flex-1">
@@ -179,11 +179,11 @@ export default function GlossaryManager({ isOpen, onClose }) {
                               <textarea
                                 value={editValue}
                                 onChange={e => setEditValue(e.target.value)}
-                                className="w-full bg-black/40 border border-emerald-500/30 rounded-lg p-2 text-sm text-text-primary focus:outline-none focus:border-emerald-500"
+                                className="w-full bg-black/40 border border-emerald-500/30 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-emerald-500"
                                 rows={2}
                               />
                             ) : (
-                              <p className="text-sm text-text-muted leading-relaxed whitespace-pre-wrap">{value}</p>
+                              <p className="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap">{value}</p>
                             )}
                           </div>
 
@@ -199,12 +199,12 @@ export default function GlossaryManager({ isOpen, onClose }) {
                                   setEditingTerm(term);
                                   setEditValue(value);
                                 }} 
-                                className="p-1.5 text-text-muted hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg"
+                                className="p-1.5 text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg"
                               >
                                 <Edit2 size={14} />
                               </button>
                             )}
-                            <button onClick={() => handleDeleteTerm(category, term)} className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg">
+                            <button onClick={() => handleDeleteTerm(category, term)} className="p-1.5 text-gray-400 hover:text-danger hover:bg-danger/10 rounded-lg">
                               <Trash2 size={14} />
                             </button>
                           </div>
@@ -218,22 +218,22 @@ export default function GlossaryManager({ isOpen, onClose }) {
                           placeholder="Term Name (e.g. Active User)"
                           value={newTermName}
                           onChange={e => setNewTermName(e.target.value)}
-                          className="w-1/3 bg-black/40 border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-emerald-500"
+                          className="w-1/3 bg-black/40 border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
                         />
                         <input
                           placeholder="Definition or SQL Formula"
                           value={newTermValue}
                           onChange={e => setNewTermValue(e.target.value)}
-                          className="flex-1 bg-black/40 border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-emerald-500"
+                          className="flex-1 bg-black/40 border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
                           onKeyDown={e => { if(e.key === 'Enter') handleAddTerm(category); }}
                         />
                         <button onClick={() => handleAddTerm(category)} className="px-4 bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-lg">Save</button>
-                        <button onClick={() => setAddingTermTo(null)} className="px-3 bg-white/5 hover:bg-white/10 rounded-lg text-text-muted">Cancel</button>
+                        <button onClick={() => setAddingTermTo(null)} className="px-3 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400">Cancel</button>
                       </div>
                     )}
                     
                     {Object.keys(glossary[category]).length === 0 && addingTermTo !== category && (
-                      <div className="text-center py-6 text-sm text-text-muted/40 italic">No terms defined in this category</div>
+                      <div className="text-center py-6 text-sm text-gray-400/40 italic">No terms defined in this category</div>
                     )}
                   </div>
                 </div>
@@ -245,17 +245,17 @@ export default function GlossaryManager({ isOpen, onClose }) {
                     placeholder="New Category Name (e.g. Marketing Metrics)"
                     value={newCategory}
                     onChange={e => setNewCategory(e.target.value)}
-                    className="flex-1 bg-black/40 border border-white/[0.08] rounded-lg px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-emerald-500"
+                    className="flex-1 bg-black/40 border border-white/[0.08] rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
                     onKeyDown={e => { if(e.key === 'Enter') handleAddCategory(); }}
                     autoFocus
                   />
                   <button onClick={handleAddCategory} className="px-6 py-2.5 bg-emerald-500 text-white rounded-lg text-xs font-bold tracking-wider">Create</button>
-                  <button onClick={() => setIsAddingCategory(false)} className="px-4 py-2.5 bg-white/5 hover:bg-white/10 rounded-lg text-text-muted font-bold text-xs">Cancel</button>
+                  <button onClick={() => setIsAddingCategory(false)} className="px-4 py-2.5 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 font-bold text-xs">Cancel</button>
                 </div>
               ) : (
                 <button 
                   onClick={() => setIsAddingCategory(true)}
-                  className="w-full py-4 rounded-2xl border border-white/[0.05] border-dashed hover:border-emerald-500/30 hover:bg-emerald-500/5 text-text-muted hover:text-emerald-400 transition-all flex items-center justify-center gap-2 text-sm font-bold"
+                  className="w-full py-4 rounded-2xl border border-white/[0.05] border-dashed hover:border-emerald-500/30 hover:bg-emerald-500/5 text-gray-400 hover:text-emerald-400 transition-all flex items-center justify-center gap-2 text-sm font-bold"
                 >
                   <Plus size={18} /> Add New Category
                 </button>
