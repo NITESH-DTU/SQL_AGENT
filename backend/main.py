@@ -61,6 +61,9 @@ class CreateTableRequest(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     active_tables: List[str] = []
+    api_key: Optional[str] = None
+    base_url: Optional[str] = None
+    model: Optional[str] = None
 
 class OptimizeRequest(BaseModel):
     sql: str
@@ -410,7 +413,12 @@ async def chat(req: ChatRequest):
         raise HTTPException(status_code=400, detail="Database not connected")
     
     try:
-        agent = SQLAgent(db_manager, req.active_tables, meta_db)
+        agent = SQLAgent(
+            db_manager, req.active_tables, meta_db,
+            api_key=req.api_key or None,
+            base_url=req.base_url or None,
+            model=req.model or None
+        )
     except ValueError as e:
         print(f"⚠️  Chat Request Blocked: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))

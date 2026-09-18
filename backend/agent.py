@@ -10,25 +10,18 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class SQLAgent:
-    def __init__(self, db_manager, active_tables, meta_db):
+    def __init__(self, db_manager, active_tables, meta_db, api_key=None, base_url=None, model=None):
         self.db_manager = db_manager
         self.active_tables = active_tables
         self.meta_db = meta_db
         self.tools_executor = AgentTools(db_manager, active_tables, meta_db)
         
-        # Multi-provider setup: Groq -> OpenAI -> Fallback
+        # Multi-provider setup: per-request override -> meta_db settings -> env vars -> fallback
         self.provider = None
         self.client = None
         self.model = None
 
-        settings = self.meta_db.get_settings()
-        api_key = settings.get("openai_api_key")
-        base_url = settings.get("openai_base_url")
-        model = settings.get("openai_model")
-
-        groq_key = os.getenv("GROQ_API_KEY")
-        openai_key = os.getenv("OPENAI_API_KEY")
-
+        # 1. Per-request override (from user's browser localStorage) — highest priority
         if api_key:
             self.provider = "custom"
             self.client = OpenAI(
@@ -36,20 +29,37 @@ class SQLAgent:
                 api_key=api_key
             )
             self.model = model or "gpt-4o-mini"
-        elif groq_key and groq_key != "your_groq_api_key_goes_here":
-            self.provider = "groq"
-            self.client = OpenAI(
-                base_url="https://api.groq.com/openai/v1",
-                api_key=groq_key
-            )
-            self.model = "llama-3.1-8b-instant"
-        elif openai_key and openai_key != "your_openai_api_key_goes_here":
-            self.provider = "openai"
-            self.client = OpenAI(api_key=openai_key)
-            self.model = "gpt-4o-mini"
         else:
-            self.provider = "local_fallback"
-            print("ℹ️ Operating in Local Fallback mode (No GROQ_API_KEY or OPENAI_API_KEY set).")
+            # 2. Fall back to meta_db stored settings
+            settings = self.meta_db.get_settings()
+            db_api_key = settings.get("openai_api_key")
+            db_base_url = settings.get("openai_base_url")
+            db_model = settings.get("openai_model")
+
+            groq_key = os.getenv("GROQ_API_KEY")
+            openai_key = os.getenv("OPENAI_API_KEY")
+
+            if db_api_key:
+                self.provider = "custom"
+                self.client = OpenAI(
+                    base_url=db_base_url if db_base_url else None,
+                    api_key=db_api_key
+                )
+                self.model = db_model or "gpt-4o-mini"
+            elif groq_key and groq_key != "your_groq_api_key_goes_here":
+                self.provider = "groq"
+                self.client = OpenAI(
+                    base_url="https://api.groq.com/openai/v1",
+                    api_key=groq_key
+                )
+                self.model = "llama-3.1-8b-instant"
+            elif openai_key and openai_key != "your_openai_api_key_goes_here":
+                self.provider = "openai"
+                self.client = OpenAI(api_key=openai_key)
+                self.model = "gpt-4o-mini"
+            else:
+                self.provider = "local_fallback"
+                print("ℹ️ Operating in Local Fallback mode (No API key configured).")
 
     def _get_system_prompt(self):
         glossary_context = ""

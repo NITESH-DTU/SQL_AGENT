@@ -2,6 +2,15 @@ import { useState } from 'react';
 
 const API_BASE = '/api';
 
+function getAISettings() {
+  try {
+    const raw = localStorage.getItem('sqlagent_ai_settings');
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
 export function useAgent() {
   const [messages, setMessages] = useState([]);
   const [isThinking, setIsThinking] = useState(false);
@@ -24,10 +33,17 @@ export function useAgent() {
     setMessages(prev => [...prev, currentAgentMsg]);
 
     try {
+      const aiSettings = getAISettings();
       const response = await fetch(`${API_BASE}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, active_tables: activeTables }),
+        body: JSON.stringify({
+          message,
+          active_tables: activeTables,
+          api_key: aiSettings.apiKey || undefined,
+          base_url: aiSettings.baseUrl || undefined,
+          model: aiSettings.model || undefined,
+        }),
       });
 
       const reader = response.body.getReader();
