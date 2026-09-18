@@ -5,7 +5,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import Editor from '@monaco-editor/react';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = '/api';
 
 export default function SQLConsole({ onClose, db, initialSql = '', onPin, activeTables }) {
   const [sql, setSql] = useState(initialSql);

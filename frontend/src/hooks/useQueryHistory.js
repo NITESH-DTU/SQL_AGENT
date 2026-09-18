@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = '/api';
 
 export default function useQueryHistory() {
   const [history, setHistory] = useState([]);

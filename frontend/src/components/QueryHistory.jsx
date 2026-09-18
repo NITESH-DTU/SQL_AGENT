@@ -27,7 +27,7 @@ export default function QueryHistory({ isOpen, onClose, onReRun }) {
   };
 
   const handleExport = (sql, format = 'csv') => {
-    const API_BASE = 'http://localhost:8000/api';
+    const API_BASE = '/api';
     const filename = `export_${Date.now()}.${format}`;
     const url = `${API_BASE}/export/${format}?sql=${encodeURIComponent(sql)}&filename=${filename}`;
     window.open(url, '_blank');

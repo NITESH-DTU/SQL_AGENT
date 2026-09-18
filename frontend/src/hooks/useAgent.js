@@ -1,8 +1,6 @@
 import { useState } from 'react';
 
-const API_BASE = window.location.origin.includes('localhost:5173') 
-  ? 'http://localhost:8000/api' 
-  : `${window.location.origin}/api`;
+const API_BASE = '/api';
 
 export function useAgent() {
   const [messages, setMessages] = useState([]);

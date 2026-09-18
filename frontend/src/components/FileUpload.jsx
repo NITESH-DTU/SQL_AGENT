@@ -23,7 +23,7 @@ export default function FileUpload({ onClose, onSuccess }) {
     formData.append('file', selected);
     
     try {
-      const res = await axios.post('http://localhost:8000/api/upload', formData);
+      const res = await axios.post('/api/upload', formData);
       setPreview(res.data);
       setTableName(res.data.filename.split('.')[0].replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase());
     } catch (err) {
@@ -38,7 +38,7 @@ export default function FileUpload({ onClose, onSuccess }) {
     if (!tableName) return toast.error("Table name required");
     setIsImporting(true);
     try {
-      await axios.post('http://localhost:8000/api/import', {
+      await axios.post('/api/import', {
         file_path: preview.file_path,
         table_name: tableName,
         mode: importMode

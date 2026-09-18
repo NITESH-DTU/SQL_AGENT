@@ -3,7 +3,7 @@ import { X, Activity, Database, AlertCircle, CheckCircle2, ChevronDown, Loader2 
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = '/api';
 
 export default function DataProfiler({ isOpen, onClose, activeTables }) {
   const [selectedTable, setSelectedTable] = useState(activeTables[0] || '');

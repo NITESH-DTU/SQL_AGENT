@@ -4,7 +4,7 @@ import { X, Send, Clock, Calendar, Mail, CheckCircle2 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = '/api';
 
 export default function ScheduleModal({ isOpen, onClose, widget }) {
   const [email, setEmail] = useState('');

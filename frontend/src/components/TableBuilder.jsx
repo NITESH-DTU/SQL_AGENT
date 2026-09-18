@@ -45,7 +45,7 @@ export default function TableBuilder({ onClose, onSuccess }) {
     if (!tableName) return toast.error("Table name required");
     setIsCreating(true);
     try {
-      await axios.post('http://localhost:8000/api/create-table', {
+      await axios.post('/api/create-table', {
         table_name: tableName,
         columns,
         seed_ai: seedAI,

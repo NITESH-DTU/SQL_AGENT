@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = '/api';
 
 export default function DataExplorer({ table, onClose, activeTables = [] }) {
   const [data, setData] = useState({ rows: [], total: 0, total_pages: 0, page: 1 });
